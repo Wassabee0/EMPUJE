@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empuje · Prototipo estructural visual</title>
+  <style>
+    :root {
+      --stage: #8f9099;
+      --shell: #f7f7f4;
+      --ink: #252c35;
+      --ink-2: #313b48;
+      --panel: #4b5663;
+      --muted: #7f8790;
+      --line: #e1e3df;
+      --white: #ffffff;
+      --coral: #df7d74;
+      --coral-soft: #ffe5e1;
+      --violet: #5d43ce;
+      --lime: #c8db73;
+      --green-soft: #edf7e9;
+      --blue-soft: #edf3f8;
+      --shadow: 0 34px 90px rgba(24, 28, 34, 0.28);
+      --radius: 34px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(255, 255, 255, 0.24), transparent 24rem),
+        var(--stage);
+      color: var(--ink);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .frame {
+      width: min(100vw - 24px, 1520px);
+      min-height: calc(100vh - 24px);
+      margin: 12px auto;
+      overflow: hidden;
+      border: 8px solid var(--shell);
+      border-radius: 48px;
+      background: var(--shell);
+      box-shadow: var(--shadow);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 22px;
+      align-items: center;
+      min-height: 82px;
+      padding: 18px 38px;
+      border-bottom: 1px solid rgba(225, 227, 223, 0.72);
+      background: rgba(247, 247, 244, 0.88);
+      backdrop-filter: blur(16px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-weight: 920;
+      letter-spacing: -0.055em;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #c9ccc7;
+      border-radius: 4px;
+      color: var(--ink-2);
+      font-size: 11px;
+      line-height: 0.92;
+    }
+
+    .route-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .route-tab {
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: white;
+      color: var(--ink-2);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .route-tab.active {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: white;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn,
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      white-space: nowrap;
+      font-weight: 850;
+    }
+
+    .btn {
+      min-height: 40px;
+      padding: 0 16px;
+      border: 0;
+      background: var(--ink);
+      color: white;
+    }
+
+    .btn.coral {
+      background: var(--coral);
+    }
+
+    .btn.secondary {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+    }
+
+    .pill {
+      min-height: 30px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .pill.coral {
+      border-color: #efc5bf;
+      background: var(--coral-soft);
+      color: #94453f;
+    }
+
+    .pill.green {
+      border-color: #d8e8c4;
+      background: var(--green-soft);
+      color: #526a21;
+    }
+
+    .pill.dark {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: white;
+    }
+
+    .screen {
+      display: none;
+      min-height: calc(100vh - 122px);
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .landing-hero {
+      position: relative;
+      min-height: calc(100vh - 122px);
+      overflow: hidden;
+      background:
+        linear-gradient(90deg, rgba(37, 44, 53, 0.98) 0%, rgba(37, 44, 53, 0.86) 48%, rgba(37, 44, 53, 0.26) 100%),
+        url("https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1800&q=84");
+      background-position: center;
+      background-size: cover;
+      color: white;
+    }
+
+    .landing-hero::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 170px;
+      background: var(--shell);
+      clip-path: polygon(0 50%, 34% 50%, 39% 30%, 100% 30%, 100% 100%, 0 100%);
+      z-index: 1;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(380px, 0.78fr);
+      gap: 34px;
+      padding: 78px 70px 210px;
+    }
+
+    .asset {
+      position: relative;
+      width: 164px;
+      height: 60px;
+      margin-bottom: 30px;
+      overflow: hidden;
+      border-radius: 17px;
+      background: var(--violet);
+    }
+
+    .asset::before {
+      content: "";
+      position: absolute;
+      right: 30px;
+      top: 10px;
+      width: 70px;
+      height: 43px;
+      border-radius: 7px 7px 27px 7px;
+      background: linear-gradient(135deg, #fff 0%, #f3f3ef 58%, #c8ccd1 59%, #fafafa 100%);
+      transform: rotate(12deg);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .asset::after {
+      content: "";
+      position: absolute;
+      right: 35px;
+      top: 4px;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #ffba4a, #e85d25);
+      box-shadow: 0 12px 24px rgba(232, 93, 37, 0.38);
+    }
+
+    h1 {
+      max-width: 720px;
+      color: white;
+      font-size: clamp(52px, 6.2vw, 86px);
+      line-height: 0.92;
+      letter-spacing: -0.085em;
+      font-weight: 920;
+    }
+
+    .lead {
+      max-width: 600px;
+      margin-top: 20px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 17px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 11px;
+      margin-top: 28px;
+    }
+
+    .hero-card-stack {
+      display: grid;
+      gap: 16px;
+      align-content: center;
+    }
+
+    .glass-card {
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.17);
+      border-radius: 20px;
+      background: rgba(72, 83, 96, 0.86);
+      color: white;
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(12px);
+    }
+
+    .glass-card.coral {
+      background: var(--coral);
+    }
+
+    .glass-card h3 {
+      margin-top: 12px;
+      color: inherit;
+      font-size: 28px;
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+    }
+
+    .glass-card p {
+      margin-top: 10px;
+      color: rgba(255, 255, 255, 0.67);
+      font-size: 14px;
+    }
+
+    .round-icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--lime);
+      color: var(--ink);
+      font-weight: 920;
+    }
+
+    .public-examples {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: 260px repeat(4, 1fr);
+      gap: 14px;
+      align-items: stretch;
+      margin: -136px 38px 0 82px;
+    }
+
+    .example-card,
+    .dock-card,
+    .card,
+    .metric,
+    .field {
+      border: 1px solid var(--line);
+      background: white;
+      box-shadow: 0 18px 42px rgba(35, 42, 49, 0.07);
+    }
+
+    .example-card {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 14px;
+      align-items: center;
+      min-height: 96px;
+      padding: 12px;
+      border-radius: 18px;
+    }
+
+    .photo {
+      height: 72px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, rgba(37, 44, 53, 0.14), transparent),
+        url("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80");
+      background-position: center;
+      background-size: cover;
+    }
+
+    .example-card small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .example-card strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.12;
+      letter-spacing: -0.035em;
+    }
+
+    .dock-card {
+      display: grid;
+      place-items: center;
+      min-height: 96px;
+      padding: 12px;
+      border-radius: 18px;
+      color: var(--ink);
+      font-size: 24px;
+      font-weight: 920;
+      letter-spacing: -0.06em;
+      text-align: center;
+    }
+
+    .dock-card span {
+      margin-left: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0;
+    }
+
+    .content-section {
+      padding: 56px 54px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+      margin-bottom: 22px;
+    }
+
+    .section-head h2 {
+      max-width: 760px;
+      color: var(--ink);
+      font-size: clamp(34px, 4vw, 58px);
+      line-height: 0.98;
+      letter-spacing: -0.075em;
+    }
+
+    .section-head p {
+      max-width: 620px;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4,
+    .screen-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .screen-grid {
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: calc(100vh - 122px);
+      padding: 26px;
+    }
+
+    .panel-nav {
+      display: grid;
+      align-content: start;
+      gap: 14px;
+      padding: 20px;
+      border-radius: 26px;
+      background:
+        linear-gradient(180deg, rgba(37, 44, 53, 0.94), rgba(37, 44, 53, 0.99)),
+        url("https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=82");
+      background-position: center;
+      background-size: cover;
+      color: white;
+    }
+
+    .panel-nav h2 {
+      color: white;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -0.06em;
+    }
+
+    .panel-nav p {
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 14px;
+    }
+
+    .card {
+      padding: 20px;
+      border-radius: 20px;
+    }
+
+    .card.dark {
+      background: var(--ink);
+      color: white;
+    }
+
+    .card.coral {
+      border-color: #f0c8c2;
+      background: #fff2f0;
+    }
+
+    .card.green {
+      border-color: #d8e8c4;
+      background: var(--green-soft);
+    }
+
+    .card.blue {
+      border-color: #d4dfeb;
+      background: var(--blue-soft);
+    }
+
+    .card h3 {
+      margin-top: 12px;
+      color: inherit;
+      font-size: 25px;
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+    }
+
+    .card.dark p {
+      color: rgba(255, 255, 255, 0.66);
+    }
+
+    .metric {
+      min-height: 106px;
+      padding: 17px;
+      border-radius: 18px;
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--ink);
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: -0.07em;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      min-height: 82px;
+      padding: 13px;
+      border-radius: 15px;
+    }
+
+    .field small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .field b {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .queue {
+      display: grid;
+      gap: 10px;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfbfa;
+    }
+
+    .score {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: #edf4d6;
+      color: #586719;
+      font-weight: 920;
+    }
+
+    .queue-item strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .queue-item small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .mini-status {
+      min-width: 70px;
+      padding: 7px 9px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: white;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .mini-status.warn {
+      background: var(--coral);
+    }
+
+    .mini-status.paused {
+      background: #8b919a;
+    }
+
+    .flow-map {
+      position: relative;
+      min-height: 365px;
+      overflow: hidden;
+      border-radius: 22px;
+      background:
+        linear-gradient(135deg, rgba(37, 44, 53, 0.95), rgba(37, 44, 53, 0.7)),
+        url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1000&q=80");
+      background-position: center;
+      background-size: cover;
+    }
+
+    .node {
+      position: absolute;
+      width: 182px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 17px;
+      background: rgba(255, 255, 255, 0.13);
+      color: white;
+      backdrop-filter: blur(12px);
+    }
+
+    .node p {
+      margin-top: 5px;
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 12px;
+    }
+
+    .node.one {
+      top: 32px;
+      left: 34px;
+    }
+
+    .node.two {
+      top: 136px;
+      right: 38px;
+    }
+
+    .node.three {
+      left: 172px;
+      bottom: 34px;
+      background: var(--coral);
+    }
+
+    .line {
+      position: absolute;
+      height: 2px;
+      background: rgba(199, 218, 117, 0.78);
+      transform-origin: left center;
+    }
+
+    .line.a {
+      width: 265px;
+      top: 100px;
+      left: 188px;
+      transform: rotate(15deg);
+    }
+
+    .line.b {
+      width: 230px;
+      top: 232px;
+      left: 292px;
+      transform: rotate(-24deg);
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      margin-top: 12px;
+      border-radius: 999px;
+      background: #e8eae6;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--coral), var(--lime));
+    }
+
+    @media (max-width: 1120px) {
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+
+      .route-tabs {
+        justify-content: flex-start;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .hero-content,
+      .screen-grid,
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .public-examples {
+        grid-template-columns: 1fr 1fr;
+        margin: -124px 28px 0;
+      }
+
+      .example-card {
+        grid-column: 1 / -1;
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 660px) {
+      .frame {
+        width: min(100vw - 10px, 1520px);
+        margin: 5px auto;
+        border-width: 5px;
+        border-radius: 31px;
+      }
+
+      .topbar {
+        padding: 18px;
+      }
+
+      .landing-hero {
+        min-height: auto;
+      }
+
+      .landing-hero::after {
+        clip-path: polygon(0 60%, 100% 40%, 100% 100%, 0 100%);
+      }
+
+      .hero-content {
+        padding: 42px 22px 178px;
+      }
+
+      h1 {
+        font-size: 43px;
+      }
+
+      .hero-card-stack {
+        display: none;
+      }
+
+      .public-examples,
+      .grid-4,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .content-section,
+      .screen-grid {
+        padding: 22px;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .queue-item {
+        grid-template-columns: 44px 1fr;
+      }
+
+      .mini-status {
+        grid-column: 1 / -1;
+      }
+
+      .flow-map {
+        min-height: 450px;
+      }
+
+      .node {
+        left: 20px !important;
+        right: 20px !important;
+        width: auto;
+      }
+
+      .node.one {
+        top: 24px;
+      }
+
+      .node.two {
+        top: 160px;
+      }
+
+      .node.three {
+        bottom: 24px;
+      }
+
+      .line {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">Em<br />puje</div>
+        <span>Empuje</span>
+      </div>
+
+      <nav class="route-tabs" aria-label="Pantallas del prototipo">
+        <button class="route-tab active" type="button" data-screen="landing">Landing pública</button>
+        <button class="route-tab" type="button" data-screen="apply">Aplicar a beta</button>
+        <button class="route-tab" type="button" data-screen="member">Dashboard miembro</button>
+        <button class="route-tab" type="button" data-screen="admin">Panel fundador</button>
+      </nav>
+
+      <div class="top-actions">
+        <span class="pill coral">No directorio público</span>
+        <button class="btn coral" type="button">Solicitar acceso</button>
+      </div>
+    </header>
+
+    <section class="screen active" id="screen-landing">
+      <div class="landing-hero">
+        <div class="hero-content">
+          <div>
+            <div class="asset" aria-hidden="true"></div>
+            <h1>Empuje convierte recursos ocultos en oportunidades revisadas.</h1>
+            <p class="lead">
+              Una web pública para explicar el concepto, no para listar oportunidades reales. Las ofertas, necesidades,
+              evidencias y matches viven dentro de cuentas privadas después de revisar cada claim.
+            </p>
+            <div class="hero-actions">
+              <button class="btn coral" type="button">Aplicar a beta</button>
+              <button class="btn secondary" type="button">Ver ejemplos públicos</button>
+            </div>
+          </div>
+
+          <div class="hero-card-stack">
+            <article class="glass-card coral">
+              <span class="pill dark">Regla central</span>
+              <h3>Lo público enseña ejemplos. Lo real se revisa.</h3>
+              <p>Una oferta no se muestra a otros miembros hasta tener contexto, evidencia y capacidad.</p>
+            </article>
+            <article class="glass-card">
+              <div class="round-icon">✓</div>
+              <h3>Claims verificables</h3>
+              <p>Espacio, stock, audiencia, contactos, servicio o tiempo deben tener prueba y límites claros.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <div class="public-examples">
+        <article class="example-card">
+          <div class="photo" aria-hidden="true"></div>
+          <div>
+            <small>Ejemplo público · no real</small>
+            <strong>Cafetería con tardes libres</strong>
+            <span class="pill green">2 slots/mes</span>
+          </div>
+        </article>
+        <div class="dock-card">Espacios <span>locales</span></div>
+        <div class="dock-card">Stock <span>útil</span></div>
+        <div class="dock-card">Canales <span>reales</span></div>
+        <div class="dock-card">Servicios <span>acotados</span></div>
+      </div>
+
+      <div class="content-section">
+        <div class="section-head">
+          <div>
+            <h2>Contenido que falta en una landing genérica.</h2>
+            <p>
+              La landing tiene que explicar la tesis, enseñar ejemplos suficientes y aclarar el modelo de confianza sin
+              enseñar datos privados de miembros.
+            </p>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <article class="card coral">
+            <span class="pill coral">Problema</span>
+            <h3>La gente tiene recursos, pero no sabe convertirlos en colaboraciones.</h3>
+            <p>Espacios, stock, canales, experiencia, contactos o tiempo suelen estar infrautilizados.</p>
+          </article>
+          <article class="card">
+            <span class="pill">Cómo funciona</span>
+            <h3>Aplicar, revisar, verificar y aprobar matches privados.</h3>
+            <p>Empuje prioriza coordinación y confianza por encima de volumen o listados abiertos.</p>
+          </article>
+          <article class="card dark">
+            <span class="pill dark">Trust model</span>
+            <h3>Ningún claim se trata como verdad hasta revisarlo.</h3>
+            <p>La beta debe ser explícita: oferta pendiente, evidencia faltante o capacidad agotada bloquean intros.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-apply">
+      <div class="screen-grid">
+        <aside class="panel-nav">
+          <span class="pill coral">Onboarding</span>
+          <h2>Aplicar no es rellenar un formulario vago.</h2>
+          <p>El usuario debe saber exactamente qué necesita para que su oferta pase una revisión inicial.</p>
+        </aside>
+
+        <div class="stack">
+          <div class="grid-4">
+            <div class="metric"><strong>1</strong><span>perfil y ciudad</span></div>
+            <div class="metric"><strong>2</strong><span>oferta estructurada</span></div>
+            <div class="metric"><strong>3</strong><span>necesidad concreta</span></div>
+            <div class="metric"><strong>4</strong><span>evidencia privada</span></div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field"><small>Tipo de aportación</small><b>Espacio en horas tranquilas</b></div>
+            <div class="field"><small>Capacidad</small><b>2 tardes al mes · máximo 12 personas</b></div>
+            <div class="field"><small>Necesita verificar</small><b>Fotos actuales, dirección aproximada y condiciones de uso</b></div>
+            <div class="field"><small>Restricciones</small><b>No cocina caliente, solo martes y miércoles</b></div>
+            <div class="field"><small>Necesidad</small><b>Fotos, contenido y prueba con clientes reales</b></div>
+            <div class="field"><small>Estado al enviar</small><b>Pendiente de revisión · no visible para otros</b></div>
+          </div>
+
+          <article class="card green">
+            <span class="pill green">Guía automática</span>
+            <h3>La UI debe decir qué falta antes de revisión humana.</h3>
+            <p>Ejemplo: “sube fotos del espacio, prueba pública del local, aforo, días disponibles y límites”.</p>
+            <div class="bar"><span style="width:78%"></span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-member">
+      <div class="screen-grid">
+        <aside class="panel-nav">
+          <span class="pill green">Miembro</span>
+          <h2>Dashboard privado, no marketplace.</h2>
+          <p>El miembro ve su estado, sus ofertas, qué falta para verificar y solo matches aprobados.</p>
+        </aside>
+
+        <div class="stack">
+          <div class="grid-4">
+            <div class="metric"><strong>74</strong><span>confianza provisional</span></div>
+            <div class="metric"><strong>1/2</strong><span>slots disponibles</span></div>
+            <div class="metric"><strong>1</strong><span>match aprobado</span></div>
+            <div class="metric"><strong>2</strong><span>evidencias revisadas</span></div>
+          </div>
+
+          <div class="grid-2">
+            <article class="card coral">
+              <span class="pill coral">Qué ofrezco</span>
+              <h3>Tardes tranquilas para catas locales.</h3>
+              <p>Verificada · capacidad parcial · revisar de nuevo el 30/06/2026.</p>
+              <div class="bar"><span style="width:50%"></span></div>
+            </article>
+            <article class="card">
+              <span class="pill">Qué necesito</span>
+              <h3>Contenido y primeros clientes de barrio.</h3>
+              <p>Necesidad activa. El sistema busca ofertas aprobables, no cualquier coincidencia de tags.</p>
+            </article>
+          </div>
+
+          <article class="card">
+            <span class="pill dark">Oportunidades privadas</span>
+            <div class="queue" style="margin-top:14px">
+              <div class="queue-item">
+                <div class="score">84</div>
+                <div><strong>Marca de té frío busca cata local</strong><small>Aprobado por fundador · puedes pedir presentación</small></div>
+                <div class="mini-status">Pedir intro</div>
+              </div>
+              <div class="queue-item">
+                <div class="score">--</div>
+                <div><strong>Newsletter de barrio</strong><small>No visible: falta evidencia de audiencia y métricas</small></div>
+                <div class="mini-status paused">Oculto</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-admin">
+      <div class="screen-grid">
+        <aside class="panel-nav">
+          <span class="pill coral">Fundador</span>
+          <h2>Operar 100 usuarios sin hoja de cálculo infinita.</h2>
+          <p>Admin necesita revisión por cola, blockers, capacidad y generación de candidatos casi automática.</p>
+        </aside>
+
+        <div class="stack">
+          <div class="grid-4">
+            <div class="metric"><strong>118</strong><span>candidatos calculados</span></div>
+            <div class="metric"><strong>23</strong><span>listos</span></div>
+            <div class="metric"><strong>41</strong><span>bloqueados por evidencia</span></div>
+            <div class="metric"><strong>16</strong><span>sin capacidad</span></div>
+          </div>
+
+          <div class="grid-2">
+            <article class="card">
+              <span class="pill dark">Cola priorizada</span>
+              <div class="queue" style="margin-top:14px">
+                <div class="queue-item">
+                  <div class="score">92</div>
+                  <div><strong>Cafetería Bruma → Té frío local</strong><small>Oferta verificada · 1 de 2 slots disponible</small></div>
+                  <div class="mini-status">Aprobar</div>
+                </div>
+                <div class="queue-item">
+                  <div class="score">71</div>
+                  <div><strong>Newsletter → cosmética natural</strong><small>Pedir métricas antes de intro</small></div>
+                  <div class="mini-status warn">Evidencia</div>
+                </div>
+                <div class="queue-item">
+                  <div class="score">0</div>
+                  <div><strong>Showroom reservado</strong><small>No genera candidatos nuevos hasta liberar capacidad</small></div>
+                  <div class="mini-status paused">Pausar</div>
+                </div>
+              </div>
+            </article>
+
+            <div class="flow-map">
+              <div class="line a"></div>
+              <div class="line b"></div>
+              <article class="node one">
+                <strong>Oferta</strong>
+                <p>Espacio verificado con capacidad disponible</p>
+              </article>
+              <article class="node two">
+                <strong>Necesidad</strong>
+                <p>Validar producto con clientes reales</p>
+              </article>
+              <article class="node three">
+                <strong>Decisión final</strong>
+                <p>Aprobar, pedir evidencia o pausar antes de mostrar</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const tabs = document.querySelectorAll(".route-tab");
+    const screens = document.querySelectorAll(".screen");
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((item) => item.classList.remove("active"));
+        screens.forEach((screen) => screen.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(`screen-${tab.dataset.screen}`).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>

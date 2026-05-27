@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empuje · Dirección visual app</title>
+  <style>
+    :root {
+      --stage: #8c8d96;
+      --shell: #f7f7f4;
+      --ink: #252c35;
+      --ink-2: #303946;
+      --panel: #485360;
+      --muted: #838a94;
+      --line: #e4e6e2;
+      --white: #ffffff;
+      --coral: #df7d74;
+      --coral-soft: #ffe4df;
+      --violet: #5c43cf;
+      --lime: #c7da75;
+      --green: #8fc18d;
+      --blue: #8aa1bb;
+      --shadow: 0 34px 90px rgba(24, 28, 34, 0.28);
+      --radius: 34px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.22), transparent 24rem),
+        var(--stage);
+      color: var(--ink);
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .frame {
+      width: min(100vw - 28px, 1500px);
+      min-height: calc(100vh - 28px);
+      margin: 14px auto;
+      border: 8px solid var(--shell);
+      border-radius: 48px;
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .app {
+      min-height: calc(100vh - 44px);
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      background: var(--shell);
+    }
+
+    .sidebar {
+      position: relative;
+      overflow: hidden;
+      padding: 28px 22px;
+      background:
+        linear-gradient(180deg, rgba(37, 44, 53, 0.93), rgba(37, 44, 53, 0.98)),
+        url("https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=900&q=82");
+      background-position: center;
+      background-size: cover;
+      color: white;
+    }
+
+    .sidebar::after {
+      content: "";
+      position: absolute;
+      inset: auto -20% -22% -10%;
+      height: 190px;
+      background: rgba(255, 255, 255, 0.08);
+      transform: rotate(-8deg);
+    }
+
+    .brand {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin-bottom: 32px;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 0.92;
+      color: rgba(255, 255, 255, 0.86);
+    }
+
+    .side-nav {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 9px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 46px;
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.76);
+      font-weight: 800;
+      text-align: left;
+    }
+
+    .nav-btn.active,
+    .nav-btn:hover {
+      border-color: rgba(223, 125, 116, 0.55);
+      background: rgba(223, 125, 116, 0.16);
+      color: white;
+    }
+
+    .nav-btn span:last-child {
+      color: rgba(255, 255, 255, 0.48);
+      font-size: 12px;
+    }
+
+    .side-card {
+      position: relative;
+      z-index: 2;
+      margin-top: 28px;
+      padding: 17px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      background: rgba(72, 83, 96, 0.72);
+      backdrop-filter: blur(12px);
+    }
+
+    .side-card strong {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 18px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .side-card p {
+      color: rgba(255, 255, 255, 0.64);
+      font-size: 13px;
+    }
+
+    .content {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 86px;
+      padding: 22px 32px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 247, 244, 0.9);
+    }
+
+    .topbar h2 {
+      color: var(--ink);
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: -0.055em;
+    }
+
+    .topbar p {
+      margin-top: 5px;
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: white;
+      color: var(--ink-2);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .pill.coral {
+      border-color: #efc5bf;
+      background: var(--coral-soft);
+      color: #9b4640;
+    }
+
+    .pill.dark {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: white;
+    }
+
+    .btn {
+      min-height: 40px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--ink);
+      color: white;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .btn.coral {
+      background: var(--coral);
+    }
+
+    .view {
+      display: none;
+      padding: 24px 32px 32px;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 20px;
+      min-height: calc(100vh - 180px);
+    }
+
+    .public-panel {
+      position: relative;
+      overflow: hidden;
+      min-height: 560px;
+      padding: 34px;
+      border-radius: 30px;
+      background:
+        linear-gradient(180deg, rgba(37, 44, 53, 0.96), rgba(37, 44, 53, 0.84)),
+        url("https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1200&q=84");
+      background-position: center;
+      background-size: cover;
+      color: white;
+    }
+
+    .asset {
+      position: relative;
+      width: 164px;
+      height: 60px;
+      margin-bottom: 36px;
+      border-radius: 17px;
+      background: var(--violet);
+      overflow: hidden;
+    }
+
+    .asset::before {
+      content: "";
+      position: absolute;
+      right: 30px;
+      top: 10px;
+      width: 70px;
+      height: 43px;
+      border-radius: 7px 7px 27px 7px;
+      background: linear-gradient(135deg, #fff 0%, #f3f3ef 58%, #c8ccd1 59%, #fafafa 100%);
+      transform: rotate(12deg);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .asset::after {
+      content: "";
+      position: absolute;
+      right: 35px;
+      top: 4px;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #ffba4a, #e85d25);
+      box-shadow: 0 12px 24px rgba(232, 93, 37, 0.38);
+    }
+
+    h1 {
+      max-width: 600px;
+      color: white;
+      font-size: clamp(46px, 5.2vw, 70px);
+      line-height: 0.92;
+      letter-spacing: -0.08em;
+      font-weight: 920;
+    }
+
+    .public-panel .lead {
+      max-width: 500px;
+      margin-top: 18px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 16px;
+    }
+
+    .cta-search {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      width: min(100%, 560px);
+      margin-top: 28px;
+      padding: 10px;
+      border-radius: 14px;
+      background: white;
+      color: var(--ink);
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.26);
+    }
+
+    .search-copy {
+      display: grid;
+      gap: 3px;
+      padding: 8px 12px;
+    }
+
+    .search-copy small {
+      color: #9ea3a9;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .search-copy strong {
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 14px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .public-panel .floating {
+      position: absolute;
+      right: 34px;
+      bottom: 34px;
+      width: 230px;
+      padding: 20px;
+      border-radius: 18px;
+      background: rgba(72, 83, 96, 0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .public-panel .floating b {
+      display: inline-grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      margin-bottom: 14px;
+      border-radius: 50%;
+      background: var(--lime);
+      color: var(--ink);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .kpi,
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: white;
+      box-shadow: 0 18px 42px rgba(35, 42, 49, 0.07);
+    }
+
+    .kpi {
+      min-height: 106px;
+      padding: 17px;
+    }
+
+    .kpi strong {
+      display: block;
+      color: var(--ink);
+      font-size: 32px;
+      line-height: 1;
+      letter-spacing: -0.07em;
+    }
+
+    .kpi span {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 780;
+    }
+
+    .card {
+      padding: 19px;
+    }
+
+    .card.dark {
+      background: var(--ink);
+      color: white;
+    }
+
+    .card.dark p {
+      color: rgba(255, 255, 255, 0.66);
+    }
+
+    .card.coral {
+      border-color: #f0c8c2;
+      background: #fff2f0;
+    }
+
+    .card h3 {
+      color: inherit;
+      font-size: 24px;
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .queue {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfbfa;
+    }
+
+    .score {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: #edf4d6;
+      color: #586719;
+      font-weight: 920;
+    }
+
+    .queue-item strong {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .queue-item small {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 740;
+    }
+
+    .mini-status {
+      min-width: 68px;
+      padding: 7px 9px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: white;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .mini-status.warn {
+      background: var(--coral);
+    }
+
+    .mini-status.paused {
+      background: #8b919a;
+    }
+
+    .flow-map {
+      position: relative;
+      min-height: 320px;
+      overflow: hidden;
+      border-radius: 22px;
+      background:
+        linear-gradient(135deg, rgba(37, 44, 53, 0.95), rgba(37, 44, 53, 0.7)),
+        url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1000&q=80");
+      background-position: center;
+      background-size: cover;
+    }
+
+    .node {
+      position: absolute;
+      width: 180px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 17px;
+      background: rgba(255, 255, 255, 0.13);
+      color: white;
+      backdrop-filter: blur(12px);
+    }
+
+    .node p {
+      margin-top: 5px;
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 12px;
+    }
+
+    .node.one {
+      top: 30px;
+      left: 32px;
+    }
+
+    .node.two {
+      top: 118px;
+      right: 36px;
+    }
+
+    .node.three {
+      left: 160px;
+      bottom: 30px;
+      background: var(--coral);
+    }
+
+    .line {
+      position: absolute;
+      height: 2px;
+      background: rgba(199, 218, 117, 0.78);
+      transform-origin: left center;
+    }
+
+    .line.a {
+      width: 265px;
+      top: 96px;
+      left: 188px;
+      transform: rotate(14deg);
+    }
+
+    .line.b {
+      width: 210px;
+      top: 205px;
+      left: 278px;
+      transform: rotate(-25deg);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .field {
+      min-height: 78px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: white;
+    }
+
+    .field small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .field b {
+      display: block;
+      margin-top: 7px;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      margin-top: 11px;
+      border-radius: 999px;
+      background: #e8eae6;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--coral), var(--lime));
+    }
+
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .catalog-item {
+      min-height: 126px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fbfbfa;
+    }
+
+    .catalog-item strong {
+      display: block;
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.12;
+    }
+
+    .catalog-item span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .mobile-note {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: white;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    @media (max-width: 1180px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 18px;
+        align-items: center;
+        min-height: auto;
+        padding: 22px;
+      }
+
+      .brand,
+      .side-card {
+        margin: 0;
+      }
+
+      .side-nav {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .side-card {
+        max-width: 260px;
+      }
+
+      .hero-grid,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .public-panel {
+        min-height: 520px;
+      }
+
+      .catalog-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 740px) {
+      .frame {
+        width: min(100vw - 10px, 1500px);
+        min-height: calc(100vh - 10px);
+        margin: 5px auto;
+        border-width: 5px;
+        border-radius: 31px;
+      }
+
+      .app {
+        min-height: calc(100vh - 20px);
+      }
+
+      .sidebar {
+        grid-template-columns: 1fr;
+      }
+
+      .side-nav {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .side-card {
+        max-width: none;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 20px;
+      }
+
+      .view {
+        padding: 18px 20px 24px;
+      }
+
+      .public-panel {
+        min-height: 650px;
+        padding: 24px;
+      }
+
+      h1 {
+        font-size: 43px;
+      }
+
+      .cta-search,
+      .queue-item,
+      .form-grid,
+      .kpis,
+      .grid-3,
+      .catalog-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .public-panel .floating {
+        position: static;
+        width: auto;
+        margin-top: 22px;
+      }
+
+      .flow-map {
+        min-height: 450px;
+      }
+
+      .node {
+        left: 20px !important;
+        right: 20px !important;
+        width: auto;
+      }
+
+      .node.one {
+        top: 24px;
+      }
+
+      .node.two {
+        top: 158px;
+      }
+
+      .node.three {
+        bottom: 24px;
+      }
+
+      .line {
+        display: none;
+      }
+
+      .mobile-note {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">Em<br />puje</div>
+          <span>Empuje</span>
+        </div>
+
+        <nav class="side-nav" aria-label="Vistas del prototipo">
+          <button class="nav-btn active" type="button" data-view="public"><span>Público</span><span>01</span></button>
+          <button class="nav-btn" type="button" data-view="onboarding"><span>Onboarding</span><span>02</span></button>
+          <button class="nav-btn" type="button" data-view="dashboard"><span>Miembro</span><span>03</span></button>
+          <button class="nav-btn" type="button" data-view="admin"><span>Admin</span><span>04</span></button>
+        </nav>
+
+        <article class="side-card">
+          <strong>Dirección: visual editorial, estructura de producto.</strong>
+          <p>La primera pantalla ya no intenta vender una landing: enseña cómo se controla confianza, capacidad y matching.</p>
+        </article>
+      </aside>
+
+      <section class="content">
+        <header class="topbar">
+          <div>
+            <h2>Beta privada para España</h2>
+            <p>Ejemplos públicos, cuentas revisadas y oportunidades visibles solo dentro del perfil.</p>
+          </div>
+          <div class="top-actions">
+            <span class="pill coral">Sin directorio público</span>
+            <span class="pill">Supabase listo</span>
+            <button class="btn coral" type="button">Aplicar a beta</button>
+          </div>
+        </header>
+
+        <section class="view active" id="view-public">
+          <div class="hero-grid">
+            <article class="public-panel">
+              <div class="asset" aria-hidden="true"></div>
+              <h1>Oportunidades privadas, revisadas y accionables.</h1>
+              <p class="lead">
+                La página pública explica el concepto. Lo valioso ocurre dentro: perfiles, evidencias, capacidad de
+                ofertas y matches aprobados manualmente.
+              </p>
+
+              <div class="cta-search">
+                <div class="search-copy">
+                  <small>Ejemplos públicos, no oportunidades reales</small>
+                  <strong>espacios, stock, canales, servicios, validación y primeros clientes</strong>
+                </div>
+                <button class="btn" type="button">Solicitar acceso</button>
+              </div>
+
+              <div class="floating">
+                <b>✓</b>
+                <h3>El claim no se cree. Se verifica.</h3>
+                <p>La oferta puede existir, estar agotada, pausada o necesitar más prueba.</p>
+              </div>
+            </article>
+
+            <div class="workspace">
+              <div class="kpis">
+                <div class="kpi"><strong>42</strong><span>solicitudes beta</span></div>
+                <div class="kpi"><strong>31</strong><span>ofertas inventariadas</span></div>
+                <div class="kpi"><strong>18</strong><span>evidencias revisadas</span></div>
+                <div class="kpi"><strong>7</strong><span>matches aprobados</span></div>
+              </div>
+
+              <div class="grid-2">
+                <article class="card coral">
+                  <span class="pill coral">Ejemplo público</span>
+                  <h3 style="margin-top:14px">Una cafetería tiene tardes muertas.</h3>
+                  <p>Puede ofrecer 2 slots/mes para una cata local. Necesita fotos, clientela nueva y contenido real.</p>
+                </article>
+
+                <article class="card dark">
+                  <span class="pill dark">Privado</span>
+                  <h3 style="margin-top:14px">El match aparece solo tras revisión.</h3>
+                  <p>El miembro ve una oportunidad cuando el fundador aprueba que es relevante y segura.</p>
+                </article>
+              </div>
+
+              <article class="card">
+                <h3>Catálogo de aportaciones verificables</h3>
+                <p>La estructura real de la app empieza aquí: cada aportación tiene plantilla, evidencia y capacidad.</p>
+                <div class="catalog-grid">
+                  <div class="catalog-item"><strong>Espacio</strong><span>slots, aforo, ubicación, límites</span></div>
+                  <div class="catalog-item"><strong>Audiencia</strong><span>métricas, canal, ejemplo previo</span></div>
+                  <div class="catalog-item"><strong>Stock</strong><span>unidades, lote, entrega, caducidad</span></div>
+                  <div class="catalog-item"><strong>Servicio</strong><span>alcance, portfolio, horas, entregables</span></div>
+                  <div class="catalog-item"><strong>Semilla</strong><span>feedback, piloto, prueba, microtarea</span></div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-onboarding">
+          <div class="hero-grid">
+            <article class="card dark">
+              <span class="pill dark">Onboarding real</span>
+              <h3 style="margin-top:14px">El usuario sabe qué necesita para verificar su oferta.</h3>
+              <p>
+                En vez de pedir “cuéntanos qué haces”, la app guía: tipo de aportación, capacidad, restricciones,
+                evidencia mínima y estado inicial pendiente.
+              </p>
+              <div class="bar"><span style="width:78%"></span></div>
+            </article>
+
+            <div class="stack">
+              <div class="form-grid">
+                <div class="field"><small>Tipo de aportación</small><b>Espacio en horas tranquilas</b></div>
+                <div class="field"><small>Capacidad</small><b>2 tardes al mes · 12 personas máximo</b></div>
+                <div class="field"><small>Evidencia esperada</small><b>Fotos actuales, ubicación aproximada y condiciones del espacio</b></div>
+                <div class="field"><small>Restricciones</small><b>No cocina caliente, solo martes y miércoles</b></div>
+                <div class="field"><small>Estado inicial</small><b>Pendiente de revisión</b></div>
+                <div class="field"><small>Visibilidad</small><b>Privado hasta aprobación manual</b></div>
+              </div>
+
+              <article class="card coral">
+                <h3>La oferta no es solo texto.</h3>
+                <p>Es inventario operativo: qué existe, cuánto queda, qué prueba lo respalda y cuándo caduca.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="view-dashboard">
+          <div class="grid-2">
+            <article class="card">
+              <span class="pill">Panel de miembro</span>
+              <h3 style="margin-top:14px">Cafetería Bruma</h3>
+              <p>Estado activo. Oportunidades privadas visibles solo cuando están aprobadas para esta cuenta.</p>
+              <div class="queue">
+                <div class="queue-item">
+                  <div class="score">84</div>
+                  <div><strong>Marca de té frío busca cata local</strong><small>Aprobado · pedir presentación</small></div>
+                  <div class="mini-status">OK</div>
+                </div>
+                <div class="queue-item">
+                  <div class="score">--</div>
+                  <div><strong>Newsletter barrio centro</strong><small>No visible: falta evidencia de audiencia</small></div>
+                  <div class="mini-status paused">Oculto</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="card coral">
+              <span class="pill coral">Mis ofertas</span>
+              <h3 style="margin-top:14px">Tardes tranquilas para catas</h3>
+              <p>Oferta verificada, capacidad parcial, 1 de 2 slots disponibles este mes.</p>
+              <div class="bar"><span style="width:50%"></span></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-admin">
+          <div class="grid-2">
+            <div class="stack">
+              <div class="kpis">
+                <div class="kpi"><strong>118</strong><span>candidatos</span></div>
+                <div class="kpi"><strong>23</strong><span>listos</span></div>
+                <div class="kpi"><strong>41</strong><span>falta evidencia</span></div>
+                <div class="kpi"><strong>16</strong><span>sin capacidad</span></div>
+              </div>
+
+              <article class="card">
+                <h3>Cola de matching fundador</h3>
+                <div class="queue">
+                  <div class="queue-item">
+                    <div class="score">92</div>
+                    <div><strong>Cafetería Bruma → Té frío local</strong><small>Oferta verificada · capacidad parcial</small></div>
+                    <div class="mini-status">Aprobar</div>
+                  </div>
+                  <div class="queue-item">
+                    <div class="score">71</div>
+                    <div><strong>Newsletter → cosmética natural</strong><small>Pedir métricas antes de intro</small></div>
+                    <div class="mini-status warn">Evidencia</div>
+                  </div>
+                  <div class="queue-item">
+                    <div class="score">0</div>
+                    <div><strong>Showroom reservado</strong><small>No genera candidatos nuevos</small></div>
+                    <div class="mini-status paused">Pausar</div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="flow-map">
+              <div class="line a"></div>
+              <div class="line b"></div>
+              <article class="node one">
+                <strong>Oferta</strong>
+                <p>Espacio verificado con capacidad disponible</p>
+              </article>
+              <article class="node two">
+                <strong>Necesidad</strong>
+                <p>Validar producto con clientes reales</p>
+              </article>
+              <article class="node three">
+                <strong>Revisión final</strong>
+                <p>Aprobar, pedir evidencia o pausar antes de mostrar</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <p class="mobile-note">
+          En móvil esta dirección funciona como app vertical: navegación compacta, panel público primero y después
+          onboarding, miembro y admin. La estética se conserva sin depender de tarjetas flotantes.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const buttons = document.querySelectorAll(".nav-btn");
+    const views = document.querySelectorAll(".view");
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        buttons.forEach((item) => item.classList.remove("active"));
+        views.forEach((view) => view.classList.remove("active"));
+        button.classList.add("active");
+        document.getElementById(`view-${button.dataset.view}`).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>

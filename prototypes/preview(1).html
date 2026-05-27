@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empuje · Beta operativa con capacidad, verificación y matches</title>
+  <style>
+    :root{
+      --bg:#f6f2ea;
+      --paper:#fffdf8;
+      --ink:#17211d;
+      --muted:#66736d;
+      --line:#e4dbcd;
+      --brand:#0f5f50;
+      --brand-2:#103d43;
+      --soft:#e7f2ed;
+      --warm:#d88b5b;
+      --danger:#bd4c4c;
+      --ok:#287a58;
+      --warn:#b97716;
+      --shadow:0 18px 45px rgba(23,33,29,.08);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45}
+    a{color:inherit;text-decoration:none}
+    button,input,textarea,select{font:inherit}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(246,242,234,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+    .nav{max-width:1220px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:14px 20px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:850;font-size:1.25rem;letter-spacing:-.03em}
+    .logo-mark{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--warm));display:grid;place-items:center;color:white;font-weight:900}
+    .navlinks{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+    .navlinks button{border:0;background:transparent;padding:9px 12px;border-radius:999px;color:var(--muted);cursor:pointer}
+    .navlinks button.active,.navlinks button:hover{background:var(--soft);color:var(--brand)}
+    .cta{border:0;border-radius:999px;background:var(--brand);color:white;padding:11px 16px;font-weight:750;cursor:pointer;box-shadow:0 10px 22px rgba(15,95,80,.16)}
+    .cta.secondary{background:var(--paper);color:var(--brand);border:1px solid var(--line);box-shadow:none}
+    .wrap{max-width:1220px;margin:0 auto;padding:34px 20px 70px}
+    .screen{display:none}.screen.active{display:block}
+    .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:stretch;margin-top:12px}
+    .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .hero-main{padding:44px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;background:var(--soft);color:var(--brand);padding:8px 12px;border-radius:999px;font-size:.88rem;font-weight:750;margin-bottom:18px}
+    h1{font-size:clamp(2.4rem,5vw,5.1rem);line-height:.95;margin:0 0 18px;letter-spacing:-.07em}
+    h2{font-size:clamp(1.7rem,3vw,2.65rem);line-height:1.02;margin:0 0 14px;letter-spacing:-.055em}
+    h3{margin:0 0 8px;font-size:1.15rem;letter-spacing:-.035em}
+    p{margin:0;color:var(--muted)}
+    .lead{font-size:1.12rem;max-width:780px;color:#45514c}
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:26px}
+    .stat{background:#f7fbf8;border:1px solid var(--line);border-radius:18px;padding:16px}.stat strong{display:block;font-size:1.55rem;letter-spacing:-.05em}.stat span{font-size:.82rem;color:var(--muted)}
+    .hero-side{padding:22px;display:flex;flex-direction:column;gap:14px}
+    .mini-card{background:#f9f6ef;border:1px solid var(--line);border-radius:20px;padding:18px}
+    .score-ring{width:74px;height:74px;border-radius:50%;background:conic-gradient(var(--brand) 0 82%,#dfe7df 82% 100%);display:grid;place-items:center;float:right;margin-left:14px}
+    .score-ring span{background:var(--paper);width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-weight:850;color:var(--brand)}
+    .grid{display:grid;gap:18px}.grid.three{grid-template-columns:repeat(3,1fr)}.grid.two{grid-template-columns:repeat(2,1fr)}.grid.four{grid-template-columns:repeat(4,1fr)}
+    .section{margin-top:34px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:16px}.section-head p{max-width:680px}
+    .card{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 12px 28px rgba(23,33,29,.05)}
+    .card.compact{padding:16px}
+    .badge-row{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:#f0ebe2;border:1px solid #e1d7c8;border-radius:999px;padding:5px 9px;font-size:.78rem;color:#55615c;font-weight:700}.badge.green{background:#e7f2ed;color:var(--brand);border-color:#c7ded4}.badge.orange{background:#fff0e5;color:#925427;border-color:#f2cfb5}.badge.red{background:#ffe8e8;color:#993a3a;border-color:#efc4c4}.badge.dark{background:#183f3d;color:#fff;border-color:#183f3d}.badge.blue{background:#e7eef7;color:#244e7a;border-color:#c9d8ea}
+    .muted{color:var(--muted)}.small{font-size:.88rem}.tiny{font-size:.76rem;color:var(--muted)}
+    .divider{height:1px;background:var(--line);margin:16px 0}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.tab{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:10px 13px;cursor:pointer;color:var(--muted);font-weight:750}.tab.active{background:var(--brand);border-color:var(--brand);color:white}
+    .view{display:none}.view.active{display:block}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}.filters input,.filters select{border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:11px 12px;min-width:170px;color:var(--ink)}
+    .directory{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+    .profile-card{display:flex;flex-direction:column;min-height:360px}.profile-card .grow{flex:1}.avatar{width:46px;height:46px;border-radius:16px;background:linear-gradient(135deg,#0f5f50,#d88b5b);display:grid;place-items:center;color:white;font-weight:850}.card-head{display:flex;gap:12px;align-items:center;margin-bottom:12px}.meta{color:var(--muted);font-size:.86rem}
+    .bar{height:9px;background:#e6ded0;border-radius:999px;overflow:hidden}.bar span{display:block;height:100%;background:linear-gradient(90deg,var(--brand),var(--warm));border-radius:999px}
+    .btnrow{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.btn{border:1px solid var(--line);background:var(--paper);border-radius:14px;padding:10px 12px;cursor:pointer;font-weight:760;color:var(--brand)}.btn:hover{background:var(--soft)}.btn.primary{background:var(--brand);color:white;border-color:var(--brand)}.btn.danger{color:var(--danger)}.btn.warn{color:var(--warn)}.btn.disabled{opacity:.45;cursor:not-allowed}.btn.full{width:100%;justify-content:center;display:flex}
+    .app-shell{display:grid;grid-template-columns:280px 1fr;gap:18px}.sidebar{position:sticky;top:84px;align-self:start;padding:18px}.side-account{display:flex;gap:12px;align-items:center}.side-menu{display:flex;flex-direction:column;gap:8px;margin-top:18px}.side-menu button{border:0;background:transparent;text-align:left;padding:11px 12px;border-radius:14px;cursor:pointer;color:var(--muted);font-weight:760}.side-menu button.active,.side-menu button:hover{background:var(--soft);color:var(--brand)}
+    .account-select{width:100%;margin-top:12px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px;color:var(--ink)}
+    .dash-head{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:18px}.dash-title{display:flex;gap:12px;align-items:center}.dash-title .avatar{width:58px;height:58px;border-radius:20px}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:16px}.kpi strong{display:block;font-size:1.45rem;letter-spacing:-.05em}.kpi span{font-size:.78rem;color:var(--muted);font-weight:720}
+    .offer-list,.match-list{display:grid;gap:14px}.offer-item{display:grid;grid-template-columns:1fr 160px;gap:14px;align-items:center}.capacity{background:#f8f5ef;border:1px solid var(--line);border-radius:16px;padding:12px}.status-dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--ok)}.status-dot.warn{background:var(--warn)}.status-dot.red{background:var(--danger)}.status-dot.gray{background:#9aa39f}
+    .match-card{display:grid;grid-template-columns:1fr 170px;gap:14px}.match-score{background:#f4fbf7;border:1px solid #cfe5da;border-radius:20px;padding:14px;text-align:center}.match-score strong{display:block;font-size:2rem;letter-spacing:-.06em;color:var(--brand)}
+    .graph{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;background:#faf8f2;border:1px dashed #d8cabb;border-radius:20px;padding:16px;margin-top:12px}.node{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:9px 12px;font-weight:800}.arrow{color:var(--warm);font-weight:900}
+    .timeline{display:grid;gap:10px}.step{display:flex;gap:10px;align-items:flex-start}.step-num{width:28px;height:28px;border-radius:50%;background:var(--soft);display:grid;place-items:center;color:var(--brand);font-weight:850;flex:none}
+    table{width:100%;border-collapse:separate;border-spacing:0 9px}th{text-align:left;color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;padding:0 10px}td{background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px 10px}td:first-child{border-left:1px solid var(--line);border-radius:14px 0 0 14px}td:last-child{border-right:1px solid var(--line);border-radius:0 14px 14px 0}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,27,24,.52);display:none;z-index:50;align-items:center;justify-content:center;padding:20px}.modal-backdrop.open{display:flex}.modal{width:min(760px,100%);max-height:88vh;overflow:auto;background:var(--paper);border-radius:28px;padding:24px;box-shadow:0 30px 90px rgba(0,0,0,.28)}.modal-head{display:flex;justify-content:space-between;gap:20px;align-items:start;margin-bottom:16px}.x{border:0;background:#f0ebe2;border-radius:50%;width:36px;height:36px;cursor:pointer;font-weight:900}
+    .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:.78rem;color:var(--muted);font-weight:800}.field input,.field textarea,.field select{border:1px solid var(--line);border-radius:14px;padding:11px 12px;background:#fff;color:var(--ink)}.field textarea{min-height:98px;resize:vertical}.field.full{grid-column:1/-1}
+    .notice{border-radius:18px;padding:14px 16px;background:#f7f2e8;border:1px solid #e4d8c6;color:#584d41}.notice.green{background:#eaf6ef;border-color:#cfe7da;color:#214c3e}.notice.red{background:#fff0f0;border-color:#f0caca;color:#7a3030}.notice.blue{background:#eef5fb;border-color:#cfddeb;color:#27435c}
+    .offer-catalog{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.template-card{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:18px}.template-card ul{margin:10px 0 0 18px;color:var(--muted);padding:0}.template-card li{margin:4px 0}
+    .matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.matrix .cell{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:13px}.matrix .cell.good{border-color:#bcdccb;background:#f0faf4}.matrix .cell.warn{border-color:#f1d2a8;background:#fff7ec}.matrix .cell.bad{border-color:#efc4c4;background:#fff3f3}
+    .toast{position:fixed;bottom:22px;right:22px;background:#173f39;color:white;padding:14px 16px;border-radius:16px;box-shadow:0 18px 45px rgba(0,0,0,.18);opacity:0;transform:translateY(12px);transition:.25s;z-index:80}.toast.show{opacity:1;transform:translateY(0)}
+    .progress-label{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--muted);margin-bottom:6px}
+    .mobile-only{display:none}
+    @media(max-width:980px){.hero,.grid.two,.grid.three,.grid.four,.directory,.app-shell,.offer-catalog{grid-template-columns:1fr}.stats,.kpis{grid-template-columns:repeat(2,1fr)}.offer-item,.match-card{grid-template-columns:1fr}.sidebar{position:static}.nav{align-items:flex-start}.navlinks{display:none}.mobile-only{display:inline-flex}.hero-main{padding:28px}.matrix{grid-template-columns:1fr 1fr}}
+    @media(max-width:620px){.stats,.kpis,.matrix,.form-grid{grid-template-columns:1fr}.wrap{padding:22px 14px 50px}.hero-main{padding:22px}.section-head,.dash-head{align-items:flex-start;flex-direction:column}h1{font-size:2.4rem}.topbar{position:static}}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav">
+      <a class="logo" href="#" onclick="showScreen('home')"><span class="logo-mark">E</span> Empuje</a>
+      <div class="navlinks">
+        <button data-screen="home" class="active" onclick="showScreen('home')">Inicio</button>
+        <button data-screen="directory" onclick="showScreen('directory')">Oportunidades</button>
+        <button data-screen="catalog" onclick="showScreen('catalog')">Plantillas</button>
+        <button data-screen="account" onclick="showScreen('account')">Mi cuenta</button>
+        <button data-screen="admin" onclick="showScreen('admin')">Panel interno</button>
+        <button data-screen="monetization" onclick="showScreen('monetization')">Monetización</button>
+      </div>
+      <button class="cta secondary mobile-only" onclick="showScreen('account')">Mi cuenta</button>
+      <button class="cta" onclick="openModal('beta')">Unirme a la beta</button>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section id="home" class="screen active">
+      <div class="hero">
+        <div class="panel hero-main">
+          <div class="eyebrow">Beta operativa · matches con capacidad y verificación</div>
+          <h1>Emprender no debería depender de conocer a alguien.</h1>
+          <p class="lead">Empuje conecta pequeños negocios, autónomos y personas en fase inicial mediante oportunidades directas, triangulares y grupales. La diferencia: cada oferta tiene disponibilidad, evidencia, reputación y estado.</p>
+          <div class="hero-actions">
+            <button class="cta" onclick="showScreen('account')">Entrar como usuario demo</button>
+            <button class="cta secondary" onclick="showScreen('admin')">Ver radar interno</button>
+            <button class="cta secondary" onclick="showScreen('catalog')">Ver plantillas de valor</button>
+          </div>
+          <div class="stats">
+            <div class="stat"><strong>42</strong><span>miembros beta</span></div>
+            <div class="stat"><strong>31</strong><span>ofertas inventariadas</span></div>
+            <div class="stat"><strong>18</strong><span>evidencias revisadas</span></div>
+            <div class="stat"><strong>7</strong><span>acuerdos piloto</span></div>
+          </div>
+        </div>
+        <aside class="panel hero-side">
+          <div class="mini-card">
+            <div class="score-ring"><span>82</span></div>
+            <h3>La unidad no es el usuario. Es la oferta disponible.</h3>
+            <p class="small">Si alguien cede su local tres tardes, la oferta queda reservada o parcial. El usuario no desaparece: cambia de rol, reputación y disponibilidad.</p>
+          </div>
+          <div class="mini-card">
+            <h3>Estados de una oferta</h3>
+            <div class="badge-row">
+              <span class="badge green">Activa</span><span class="badge orange">Parcial</span><span class="badge blue">Reservada</span><span class="badge red">Agotada</span><span class="badge">Pausada</span>
+            </div>
+            <p class="small">El motor solo propone matches ejecutables si hay capacidad real o una fecha futura disponible.</p>
+          </div>
+          <div class="mini-card">
+            <h3>Fase semilla</h3>
+            <p class="small">Una persona que todavía no tiene empresa puede entrar si aporta algo verificable: producto piloto, conocimiento, comunidad pequeña, feedback, muestras, tiempo o demanda inicial.</p>
+          </div>
+        </aside>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div><h2>Qué cambia respecto a un directorio</h2><p>Empuje necesita controlar inventario, reputación y convergencia. Sin esto, la red recomendaría cosas que ya no existen.</p></div>
+        </div>
+        <div class="grid three">
+          <div class="card"><h3>1. Capacidad</h3><p>Cada oferta tiene unidades, disponibilidad, duración, exclusividad y caducidad. Un local no está “siempre disponible”; tiene franjas.</p></div>
+          <div class="card"><h3>2. Verificación</h3><p>Lo que alguien dice ofrecer debe poder probarse: foto, enlace, factura, contrato, Instagram, reseñas, web, dirección o prueba de trabajo.</p></div>
+          <div class="card"><h3>3. Reputación</h3><p>La confianza se gana cumpliendo acuerdos. No basta con tener recursos; importa responder, entregar y no cancelar sin motivo.</p></div>
+        </div>
+      </div>
+
+      <div class="section panel" style="padding:24px">
+        <div class="section-head">
+          <div><h2>Ejemplo real: venta inicial de material de deportes de contacto</h2><p>Este caso sí encaja en Empuje si se trata como emprendimiento semilla: poca estructura, necesidad de primeros clientes y capacidad de aportar producto, conocimiento y activaciones.</p></div>
+          <button class="btn primary" onclick="selectUser('fightgear');showScreen('account')">Ver cuenta demo</button>
+        </div>
+        <div class="grid three">
+          <div class="card compact"><h3>Lo que necesita</h3><p>Clientes fuera de su gimnasio, validación de catálogo, canales de venta, contenido, confianza y alianzas con entrenadores o clubes.</p></div>
+          <div class="card compact"><h3>Lo que puede ofrecer</h3><p>Descuento inicial, packs para principiantes, demos, producto para eventos, conocimiento sobre tallas y material, margen para afiliados.</p></div>
+          <div class="card compact"><h3>Matches posibles</h3><p>Entrenadores, clubes pequeños, fotógrafos, creadores deportivos, organizadores de torneos, newsletters locales, fisios y tiendas complementarias.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="directory" class="screen">
+      <div class="section-head">
+        <div><h2>Oportunidades beta</h2><p>Perfiles mock con ofertas que tienen capacidad, estado, evidencias y nivel de confianza. En una beta real, esto evita matches imposibles.</p></div>
+        <button class="cta" onclick="openModal('proposal')">Proponer empuje</button>
+      </div>
+      <div class="filters">
+        <input id="searchInput" placeholder="Buscar perfil, oferta o necesidad" oninput="renderDirectory()">
+        <select id="cityFilter" onchange="renderDirectory()"><option value="">Todas las ciudades</option><option>Madrid</option><option>Barcelona</option><option>Valencia</option></select>
+        <select id="statusFilter" onchange="renderDirectory()"><option value="">Cualquier estado</option><option value="active">Activa</option><option value="partial">Parcial</option><option value="reserved">Reservada</option><option value="seed">Semilla</option></select>
+        <select id="verifiedFilter" onchange="renderDirectory()"><option value="">Verificación</option><option value="verified">Con ofertas verificadas</option><option value="pending">Con evidencias pendientes</option></select>
+      </div>
+      <div id="directoryGrid" class="directory"></div>
+    </section>
+
+    <section id="catalog" class="screen">
+      <div class="section-head">
+        <div><h2>Documento de plantillas: qué puede ofrecer un usuario</h2><p>Muchos recursos están infravalorados porque la persona no los ve como “activos”. Este catálogo ayuda al onboarding y al motor de matching.</p></div>
+        <button class="btn" onclick="downloadCatalogNote()">Copiar resumen</button>
+      </div>
+      <div class="notice blue"><strong>Regla de producto:</strong> cada oferta debe tener una plantilla, capacidad, evidencia, restricciones, valor estimado y fecha de revisión. Así se puede saber si sigue disponible, si se agotó o si solo queda parcialmente activa.</div>
+      <div class="offer-catalog" id="catalogGrid"></div>
+    </section>
+
+    <section id="account" class="screen">
+      <div class="app-shell">
+        <aside class="panel sidebar">
+          <div class="side-account"><div class="avatar" id="sideAvatar">CB</div><div><strong id="sideName">Cafetería Bruma</strong><div class="meta" id="sideMeta">Madrid · Local físico</div></div></div>
+          <select class="account-select" id="accountSelect" onchange="selectUser(this.value)"></select>
+          <div class="side-menu">
+            <button class="active" data-account-view="overview" onclick="showAccountView('overview')">Resumen</button>
+            <button data-account-view="offers" onclick="showAccountView('offers')">Mis ofertas</button>
+            <button data-account-view="matches" onclick="showAccountView('matches')">Mis matches</button>
+            <button data-account-view="agreements" onclick="showAccountView('agreements')">Acuerdos</button>
+            <button data-account-view="reputation" onclick="showAccountView('reputation')">Reputación</button>
+          </div>
+        </aside>
+        <div>
+          <div class="dash-head">
+            <div class="dash-title"><div class="avatar" id="dashAvatar">CB</div><div><h2 id="dashName">Cafetería Bruma</h2><p id="dashDesc">Panel de usuario beta</p></div></div>
+            <button class="btn primary" onclick="openModal('newOffer')">Añadir oferta</button>
+          </div>
+          <div class="kpis" id="userKpis"></div>
+          <div class="section view active" id="account-overview"></div>
+          <div class="section view" id="account-offers"></div>
+          <div class="section view" id="account-matches"></div>
+          <div class="section view" id="account-agreements"></div>
+          <div class="section view" id="account-reputation"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="admin" class="screen">
+      <div class="section-head">
+        <div><h2>Panel interno de verificación y convergencia</h2><p>Para la fundadora/admin: ver qué ofertas son reales, qué matches convergen, cuáles están bloqueados por capacidad y qué usuarios tienen riesgo.</p></div>
+        <button class="cta secondary" onclick="recalculateMatches()">Recalcular radar</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-admin-tab="radar" onclick="showAdminTab('radar')">Radar</button>
+        <button class="tab" data-admin-tab="verification" onclick="showAdminTab('verification')">Verificación</button>
+        <button class="tab" data-admin-tab="convergence" onclick="showAdminTab('convergence')">Convergencia</button>
+        <button class="tab" data-admin-tab="risk" onclick="showAdminTab('risk')">Riesgo y reputación</button>
+        <button class="tab" data-admin-tab="queue" onclick="showAdminTab('queue')">Propuestas</button>
+      </div>
+      <div class="view active" id="admin-radar"></div>
+      <div class="view" id="admin-verification"></div>
+      <div class="view" id="admin-convergence"></div>
+      <div class="view" id="admin-risk"></div>
+      <div class="view" id="admin-queue"></div>
+    </section>
+
+    <section id="monetization" class="screen">
+      <div class="section-head">
+        <div><h2>Ángulo monetizable</h2><p>Empuje no debería cobrar por “tener perfil”. Cobra por acceso curado, verificación, matches revisados, coordinación y oportunidades que ahorran tiempo o generan ventas.</p></div>
+      </div>
+      <div class="grid two">
+        <div class="card"><h3>Por qué no pausar a usuarios sin oferta activa</h3><p>Una oferta agotada no invalida al usuario. Puede seguir pagando si recibe valor por demanda, reputación, waitlist, círculos, alertas, formación, coordinación o si puede aportar otras cosas más pequeñas.</p><div class="divider"></div><div class="badge-row"><span class="badge green">Demandante activo</span><span class="badge blue">En cooldown</span><span class="badge orange">Oferta agotada</span><span class="badge">Puede aportar feedback</span></div></div>
+        <div class="card"><h3>Modelo escalonado</h3><p>Beta gratis → membresía local → concierge de oportunidades → círculos B2B patrocinados. El dinero entra cuando el sistema demuestra que genera acuerdos útiles.</p><div class="divider"></div><p class="small"><strong>Regla:</strong> nunca monetizar solo visibilidad. Monetizar confianza, coordinación y match útil.</p></div>
+      </div>
+      <div class="section grid four">
+        <div class="card"><h3>Starter</h3><p class="small">Gratis o 9 €/mes. Perfil, 1 necesidad, 1 oferta, matches básicos y acceso a beta.</p></div>
+        <div class="card"><h3>Miembro verificado</h3><p class="small">15-29 €/mes. Ofertas verificadas, prioridad en radar, matches curados y reputación visible.</p></div>
+        <div class="card"><h3>Concierge</h3><p class="small">79-250 €/acción. Empuje monta un pop-up, piloto, campaña o grupo específico.</p></div>
+        <div class="card"><h3>Círculo local</h3><p class="small">300-1.500 €/mes B2B. Asociación, coworking, gestoría o entidad patrocina una red local.</p></div>
+      </div>
+      <div class="section panel" style="padding:22px">
+        <h3>Calculadora simple de perspectiva mensual</h3>
+        <div class="form-grid">
+          <div class="field"><label>Miembros de pago</label><input type="number" id="paidMembers" value="120" oninput="calcRevenue()"></div>
+          <div class="field"><label>Precio medio mensual</label><input type="number" id="avgPrice" value="19" oninput="calcRevenue()"></div>
+          <div class="field"><label>Acciones concierge/mes</label><input type="number" id="conciergeCount" value="8" oninput="calcRevenue()"></div>
+          <div class="field"><label>Ticket concierge</label><input type="number" id="conciergePrice" value="140" oninput="calcRevenue()"></div>
+          <div class="field"><label>Círculos B2B</label><input type="number" id="circleCount" value="2" oninput="calcRevenue()"></div>
+          <div class="field"><label>Precio círculo</label><input type="number" id="circlePrice" value="600" oninput="calcRevenue()"></div>
+        </div>
+        <div class="notice green" style="margin-top:14px" id="revenueResult"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modal-head"><div><h2 id="modalTitle">Modal</h2><p id="modalSubtitle">Completa la información.</p></div><button class="x" onclick="closeModal()">×</button></div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast">Guardado</div>
+
+  <script>
+    const templates = [
+      {cat:'Espacios y activos físicos', examples:['Local fuera de horario','Sala de reuniones','Escaparate','Almacén temporal','Mesa en feria','Vehículo o furgoneta','Material técnico'], evidence:'Foto, dirección parcial, calendario, titularidad o permiso de uso.', capacity:'Franjas, aforo, duración, exclusividad, coste de limpieza.'},
+      {cat:'Canales y audiencia', examples:['Newsletter','Instagram/TikTok','Grupo de WhatsApp','Comunidad local','Clientes recurrentes','Lista de espera','Podcast o blog'], evidence:'Captura de métricas, enlaces públicos, ejemplos de campañas previas.', capacity:'Número de publicaciones, frecuencia, segmento, alcance esperado.'},
+      {cat:'Producto y stock', examples:['Muestras','Producto para evento','Pack piloto','Stock lento','Descuento para miembros','Producto de temporada','Kit de prueba'], evidence:'Fotos, catálogo, precios, disponibilidad, condiciones de devolución.', capacity:'Unidades disponibles, margen, fecha de caducidad, reposición.'},
+      {cat:'Servicios profesionales', examples:['Fotografía','Branding','Web simple','Asesoría legal/fiscal','Mentoría','Copywriting','Gestión de redes','Automatización'], evidence:'Portfolio, casos, reseñas, certificaciones, trabajos previos.', capacity:'Horas/mes, entregables, revisiones, plazos.'},
+      {cat:'Validación y primeros clientes', examples:['Cliente piloto','Test de producto','Feedback estructurado','Encuesta a comunidad','Compra mínima','Prueba en tienda','Caso de uso real'], evidence:'Perfil del público, compromiso escrito, prueba de compra o asistencia.', capacity:'Número de testers, duración, profundidad del feedback.'},
+      {cat:'Eventos y experiencias', examples:['Taller','Pop-up','Demo','Charla','Clase abierta','Cata','Open day','Reto de 30 días'], evidence:'Experiencia previa, permisos, agenda, fotos, aforo.', capacity:'Plazas, fecha, duración, material necesario, riesgo operativo.'},
+      {cat:'Operaciones y distribución', examples:['Reparto local','Montaje','Almacenaje','Packaging','Proveedor recomendado','Producción pequeña','Compra conjunta'], evidence:'Proceso, herramientas, referencias, fotos, facturas no sensibles.', capacity:'Unidades, zonas, horarios, frecuencia, coste variable.'},
+      {cat:'Capital relacional verificable', examples:['Introducción a proveedor','Contacto con asociación','Acceso a club','Recomendación comercial','Puerta a un espacio','Relación con organizador'], evidence:'No exponer datos privados; validar mediante consentimiento y resultado.', capacity:'Número de intros/mes, nivel de confianza, límites de uso.'},
+      {cat:'Conocimiento específico', examples:['Cómo vender en gimnasios','Licencias locales','Importación','Tallas de producto','Normativa básica','Procesos de tienda','Negociación con proveedores'], evidence:'Experiencia real, resultados, documentación o casos.', capacity:'Sesiones, guías, revisión de dudas, disponibilidad.'},
+      {cat:'Tiempo y ejecución', examples:['Ayuda en evento','Voluntariado cualificado','Mystery shopper','Atención stand','Preparar pedidos','Moderación comunidad'], evidence:'Identidad, disponibilidad, experiencia, referencias.', capacity:'Horas concretas, tareas aceptadas, límites y seguro si aplica.'}
+    ];
+
+    const users = {
+      bruma:{id:'bruma', initials:'CB', name:'Cafetería Bruma', city:'Madrid', type:'Local físico', stage:'Funcionando', trust:82, verified:3, agreements:2, response:'Alta', desc:'Cafetería con tardes infrautilizadas y necesidad de contenido y público nuevo.', needs:['Contenido para redes','Público nuevo entre semana','Eventos pequeños de bajo riesgo'], offers:[
+        {id:'o1', title:'Espacio para pop-ups por la tarde', template:'Espacios y activos físicos', tags:['espacio','evento','local'], status:'partial', verified:true, evidence:'Fotos del local + calendario semanal', capacityTotal:8, capacityUsed:5, unit:'tardes/mes', expires:'2026-07-31', restrictions:'Martes y miércoles, máximo 20 personas, no competidores directos.'},
+        {id:'o2', title:'Café para asistentes de eventos piloto', template:'Producto y stock', tags:['producto','evento'], status:'active', verified:true, evidence:'Carta y coste estimado', capacityTotal:40, capacityUsed:8, unit:'bebidas/mes', expires:'2026-08-31', restrictions:'Solo eventos aprobados por el local.'}
+      ]},
+      lua:{id:'lua', initials:'LC', name:'Lúa Cosmética', city:'Madrid', type:'Marca emergente', stage:'Primeras ventas', trust:68, verified:2, agreements:1, response:'Media', desc:'Marca de cosmética natural buscando validación física y primeras ventas fuera de Instagram.', needs:['Espacios para pop-up','Fotografía de producto','Feedback de clientas reales'], offers:[
+        {id:'o3', title:'Muestras para eventos de bienestar', template:'Producto y stock', tags:['producto','muestras','bienestar'], status:'active', verified:true, evidence:'Fotos de stock + catálogo', capacityTotal:80, capacityUsed:20, unit:'muestras', expires:'2026-09-15', restrictions:'No claims médicos, uso cosmético.'},
+        {id:'o4', title:'Margen para afiliados o colaboradoras', template:'Validación y primeros clientes', tags:['comisión','ventas'], status:'pending', verified:false, evidence:'Pendiente de política de comisiones', capacityTotal:10, capacityUsed:0, unit:'colaboradores', expires:'2026-08-30', restrictions:'Solo ventas trazables.'}
+      ]},
+      marta:{id:'marta', initials:'MF', name:'Marta FotoProducto', city:'Madrid', type:'Autónoma creativa', stage:'Portfolio inicial', trust:74, verified:2, agreements:3, response:'Alta', desc:'Fotógrafa que necesita casos reales y ofrece sesiones piloto a negocios emergentes.', needs:['Portfolio verificable','Testimonios','Espacios reales para shooting'], offers:[
+        {id:'o5', title:'Sesión de foto producto/evento', template:'Servicios profesionales', tags:['fotografía','contenido','evento'], status:'reserved', verified:true, evidence:'Portfolio + Instagram', capacityTotal:4, capacityUsed:4, unit:'sesiones/mes', expires:'2026-06-30', restrictions:'Reabre el mes que viene. Entrega 10 fotos editadas.'}
+      ]},
+      fightgear:{id:'fightgear', initials:'FG', name:'FightGear Semilla', city:'Madrid', type:'Emprendimiento semilla', stage:'Vendiendo a conocidos', trust:46, verified:1, agreements:0, response:'Nueva', desc:'Quiere emprender vendiendo material de deportes de contacto; hoy vende ocasionalmente a amigos y familiares.', needs:['Primeros clientes fuera de su gimnasio','Canales de recomendación','Contenido de producto','Validación de catálogo','Alianzas con entrenadores'], offers:[
+        {id:'o6', title:'Packs de iniciación para deportes de contacto', template:'Producto y stock', tags:['producto','deporte','pack piloto'], status:'seed', verified:false, evidence:'Pendiente: fotos de producto, precios y stock real', capacityTotal:12, capacityUsed:2, unit:'packs piloto', expires:'2026-07-15', restrictions:'Solo material deportivo permitido; no armas ni productos regulados.'},
+        {id:'o7', title:'Conocimiento práctico sobre tallas y material básico', template:'Conocimiento específico', tags:['asesoría','deporte','principiantes'], status:'active', verified:true, evidence:'Ventas previas a conocidos + experiencia en gimnasio', capacityTotal:6, capacityUsed:0, unit:'sesiones de orientación', expires:'2026-08-31', restrictions:'Orientación comercial básica, no asesoramiento médico.'}
+      ]},
+      semilla:{id:'semilla', initials:'LS', name:'La Semilla', city:'Valencia', type:'Tienda sostenible', stage:'Funcionando', trust:79, verified:3, agreements:2, response:'Alta', desc:'Tienda con escaparate físico para marcas pequeñas y necesidad de producto diferencial.', needs:['Marcas con historia','Eventos pequeños','Difusión local'], offers:[
+        {id:'o8', title:'Escaparate para producto local', template:'Espacios y activos físicos', tags:['escaparate','venta física','producto'], status:'active', verified:true, evidence:'Fotos tienda + tráfico estimado', capacityTotal:5, capacityUsed:1, unit:'marcas/mes', expires:'2026-09-30', restrictions:'Producto sostenible, no perecedero salvo acuerdo.'}
+      ]},
+      brava:{id:'brava', initials:'BN', name:'Brava Newsletter', city:'Valencia', type:'Medio local', stage:'Creciendo', trust:71, verified:2, agreements:1, response:'Media', desc:'Newsletter local que necesita historias recomendables y ofrece difusión a marcas con experiencia real.', needs:['Historias locales','Experiencias para recomendar','Marcas con propuesta clara'], offers:[
+        {id:'o9', title:'Mención en newsletter local', template:'Canales y audiencia', tags:['audiencia','difusión','contenido'], status:'partial', verified:true, evidence:'Captura métricas newsletter', capacityTotal:4, capacityUsed:3, unit:'menciones/mes', expires:'2026-06-30', restrictions:'Solo historias con valor editorial.'}
+      ]},
+      rueda:{id:'rueda', initials:'RC', name:'Rueda Cargo', city:'Barcelona', type:'Logística urbana', stage:'Funcionando', trust:66, verified:1, agreements:0, response:'Media', desc:'Transporte en bicicleta de carga con capacidad para pilotos recurrentes.', needs:['Clientes recurrentes','Tiendas con entregas locales'], offers:[
+        {id:'o10', title:'Reparto urbano piloto', template:'Operaciones y distribución', tags:['reparto','logística','entrega'], status:'active', verified:false, evidence:'Pendiente seguro/zonas', capacityTotal:20, capacityUsed:4, unit:'entregas/mes', expires:'2026-07-31', restrictions:'Barcelona ciudad, paquetes pequeños.'}
+      ]}
+    };
+
+    const matches = [
+      {id:'m1', type:'direct', users:['bruma','marta'], score:92, title:'Bruma + Marta FotoProducto', why:'Bruma necesita contenido y Marta necesita portfolio en locales reales.', gives:['Bruma: espacio, café y testimonial','Marta: sesión de fotos y edición'], risk:'Bajo, pero la capacidad de Marta está agotada este mes.', status:'blocked_capacity', action:'Reservar para el próximo ciclo o buscar fotógrafa alternativa.'},
+      {id:'m2', type:'triangle', users:['bruma','lua','marta'], score:88, title:'Pop-up cosmética con contenido', why:'Bruma aporta espacio, Lúa aporta producto y Marta produce contenido para ambas.', gives:['Bruma: local y café','Lúa: producto y activación','Marta: fotos y contenido'], risk:'Medio: Marta sin capacidad este mes y comisión de Lúa pendiente.', status:'needs_review', action:'Programar pop-up en 30 días, cuando Marta vuelva a tener sesiones.'},
+      {id:'m3', type:'group', users:['bruma','lua','marta','fightgear'], score:76, title:'Open day de bienestar y deporte', why:'Evento pequeño con producto, contenido y comunidad. FightGear podría validar packs fuera de su gimnasio.', gives:['Bruma: espacio','Lúa: muestras','Marta: contenido','FightGear: packs demo'], risk:'Medio-alto: FightGear aún no verifica stock y no debe mezclarse con claims médicos.', status:'verification_required', action:'Pedir fotos, precios y stock de FightGear antes de activar.'},
+      {id:'m4', type:'direct', users:['fightgear','marta'], score:84, title:'Fotos de catálogo para FightGear', why:'FightGear necesita contenido y Marta necesita casos de producto; puede hacerse con pack pequeño.', gives:['FightGear: producto para shooting y testimonial','Marta: fotos de producto'], risk:'Medio: capacidad de Marta agotada temporalmente.', status:'blocked_capacity', action:'Crear waitlist para julio o proponer otro creativo.'},
+      {id:'m5', type:'triangle', users:['fightgear','brava','semilla'], score:82, title:'Historia local + punto físico + producto piloto', why:'FightGear necesita nuevos clientes; Brava necesita historias; La Semilla puede testear venta física si el producto encaja como deporte/bienestar.', gives:['FightGear: producto y historia emprendedora','Brava: difusión','La Semilla: escaparate'], risk:'Medio: validar si el producto encaja con tienda sostenible.', status:'needs_review', action:'Probar 3 packs no agresivos: vendas, comba, guantes básicos, sin armas.'},
+      {id:'m6', type:'group', users:['fightgear','brava','semilla','rueda'], score:79, title:'Campaña local de packs deportivos con entrega', why:'Combina historia, escaparate, entrega local y venta de packs piloto.', gives:['FightGear: packs','Brava: audiencia','La Semilla: punto de venta','Rueda: entregas'], risk:'Medio: Rueda está en Barcelona, hay fricción geográfica.', status:'geo_friction', action:'Buscar logística en Valencia o cambiar La Semilla por comercio de Madrid.'}
+    ];
+
+    let currentUser = 'bruma';
+    let proposals = JSON.parse(localStorage.getItem('empujeProposalsV2')||'[]');
+
+    function showScreen(id){
+      document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelectorAll('.navlinks button').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));
+      window.scrollTo({top:0,behavior:'smooth'});
+      if(id==='directory') renderDirectory();
+      if(id==='catalog') renderCatalog();
+      if(id==='account') renderAccount();
+      if(id==='admin') renderAdmin();
+      if(id==='monetization') calcRevenue();
+    }
+    function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+    function initials(name){return name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}
+    function capPct(o){return Math.min(100,Math.round((o.capacityUsed/o.capacityTotal)*100))}
+    function statusLabel(s){return {active:'Activa',partial:'Parcial',reserved:'Reservada',seed:'Semilla',pending:'Pendiente',paused:'Pausada',exhausted:'Agotada'}[s]||s}
+    function statusClass(s){return s==='active'?'green':s==='partial'?'orange':s==='reserved'?'blue':s==='seed'?'dark':s==='pending'?'':'red'}
+    function available(o){return Math.max(0,o.capacityTotal-o.capacityUsed)}
+
+    function renderDirectory(){
+      const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+      const city=document.getElementById('cityFilter')?.value||'';
+      const status=document.getElementById('statusFilter')?.value||'';
+      const vf=document.getElementById('verifiedFilter')?.value||'';
+      const list=Object.values(users).filter(u=>{
+        const text=[u.name,u.city,u.type,u.stage,u.desc,...u.needs,...u.offers.map(o=>o.title+' '+o.tags.join(' '))].join(' ').toLowerCase();
+        const hasStatus=!status||u.offers.some(o=>o.status===status);
+        const hasVerified=!vf||(vf==='verified'?u.offers.some(o=>o.verified):u.offers.some(o=>!o.verified));
+        return (!q||text.includes(q))&&(!city||u.city===city)&&hasStatus&&hasVerified;
+      });
+      document.getElementById('directoryGrid').innerHTML=list.map(u=>`
+        <article class="card profile-card">
+          <div class="card-head"><div class="avatar">${u.initials}</div><div><h3>${u.name}</h3><div class="meta">${u.city} · ${u.type} · ${u.stage}</div></div></div>
+          <p class="small grow">${u.desc}</p>
+          <div class="badge-row">${u.offers.slice(0,3).map(o=>`<span class="badge ${statusClass(o.status)}">${statusLabel(o.status)}</span>`).join('')}<span class="badge green">${u.trust}/100 confianza</span></div>
+          <div class="divider"></div>
+          <p class="tiny"><strong>Ofrece:</strong> ${u.offers.map(o=>o.title).join('; ')}</p>
+          <p class="tiny" style="margin-top:7px"><strong>Necesita:</strong> ${u.needs.slice(0,3).join(', ')}</p>
+          <div class="btnrow"><button class="btn primary" onclick="openProposalFor('${u.id}')">Proponer empuje</button><button class="btn" onclick="selectUser('${u.id}');showScreen('account')">Ver cuenta</button></div>
+        </article>`).join('') || '<div class="notice">No hay resultados con esos filtros.</div>';
+    }
+
+    function renderCatalog(){
+      document.getElementById('catalogGrid').innerHTML=templates.map(t=>`
+        <article class="template-card">
+          <h3>${t.cat}</h3>
+          <div class="badge-row">${t.examples.slice(0,4).map(e=>`<span class="badge">${e}</span>`).join('')}</div>
+          <p class="small"><strong>Evidencia:</strong> ${t.evidence}</p>
+          <p class="small" style="margin-top:7px"><strong>Capacidad:</strong> ${t.capacity}</p>
+          <ul>${t.examples.slice(4).map(e=>`<li>${e}</li>`).join('')}</ul>
+        </article>`).join('');
+    }
+
+    function populateAccountSelect(){
+      const select=document.getElementById('accountSelect');
+      select.innerHTML=Object.values(users).map(u=>`<option value="${u.id}" ${u.id===currentUser?'selected':''}>${u.name}</option>`).join('');
+    }
+    function selectUser(id){currentUser=id;populateAccountSelect();renderAccount();}
+    function showAccountView(name){
+      document.querySelectorAll('.side-menu button').forEach(b=>b.classList.toggle('active',b.dataset.accountView===name));
+      document.querySelectorAll('#account .view').forEach(v=>v.classList.remove('active'));
+      document.getElementById('account-'+name).classList.add('active');
+    }
+    function renderAccount(){
+      populateAccountSelect();
+      const u=users[currentUser];
+      document.getElementById('sideAvatar').textContent=u.initials;document.getElementById('dashAvatar').textContent=u.initials;
+      document.getElementById('sideName').textContent=u.name;document.getElementById('dashName').textContent=u.name;
+      document.getElementById('sideMeta').textContent=`${u.city} · ${u.type}`;
+      document.getElementById('dashDesc').textContent=u.desc;
+      const activeOffers=u.offers.filter(o=>['active','partial','seed'].includes(o.status)).length;
+      const userMatches=matches.filter(m=>m.users.includes(u.id));
+      document.getElementById('userKpis').innerHTML=`
+        <div class="kpi"><strong>${u.trust}</strong><span>confianza</span></div><div class="kpi"><strong>${activeOffers}</strong><span>ofertas activas/parciales</span></div><div class="kpi"><strong>${u.verified}</strong><span>evidencias validadas</span></div><div class="kpi"><strong>${userMatches.length}</strong><span>matches sugeridos</span></div>`;
+      renderAccountOverview(u,userMatches);renderAccountOffers(u);renderAccountMatches(u,userMatches);renderAccountAgreements(u);renderAccountReputation(u);
+    }
+    function renderAccountOverview(u,userMatches){
+      const blocked=userMatches.filter(m=>m.status.includes('blocked')||m.status.includes('verification')).length;
+      document.getElementById('account-overview').innerHTML=`
+        <div class="grid two">
+          <div class="card"><h3>Estado de cuenta</h3><p>${u.stage} · ${u.response} respuesta · ${u.agreements} acuerdos completados.</p><div class="divider"></div><div class="timeline"><div class="step"><span class="step-num">1</span><p><strong>Inventario:</strong> ${u.offers.length} ofertas declaradas.</p></div><div class="step"><span class="step-num">2</span><p><strong>Verificación:</strong> ${u.verified} evidencias validadas.</p></div><div class="step"><span class="step-num">3</span><p><strong>Matches:</strong> ${userMatches.length} oportunidades, ${blocked} bloqueadas por capacidad o evidencia.</p></div></div></div>
+          <div class="card"><h3>Qué necesita ahora</h3><div class="badge-row">${u.needs.map(n=>`<span class="badge orange">${n}</span>`).join('')}</div><div class="divider"></div><p class="small"><strong>Recomendación:</strong> ${u.id==='fightgear'?'Verificar stock, precios y catálogo antes de abrir matches con comercios o entrenadores.':'Mantener calendario de disponibilidad actualizado para no recibir propuestas imposibles.'}</p></div>
+        </div>
+        <div class="section card"><h3>Regla de disponibilidad</h3><p>Si una oferta se consume, no se pausa la cuenta. Se pausa, reserva o reduce esa oferta. El usuario puede seguir recibiendo matches por sus necesidades, por futuras capacidades o por otras aportaciones menores.</p></div>`;
+    }
+    function offerHTML(o){
+      const pct=capPct(o); const av=available(o);
+      return `<div class="card offer-item"><div><div class="badge-row"><span class="badge ${statusClass(o.status)}"><span class="status-dot ${o.status==='partial'||o.status==='pending'?'warn':o.status==='reserved'||o.status==='exhausted'?'red':''}"></span>${statusLabel(o.status)}</span><span class="badge ${o.verified?'green':'orange'}">${o.verified?'Verificada':'Evidencia pendiente'}</span><span class="badge">${o.template}</span></div><h3>${o.title}</h3><p class="small"><strong>Evidencia:</strong> ${o.evidence}</p><p class="small" style="margin-top:6px"><strong>Restricciones:</strong> ${o.restrictions}</p></div><div class="capacity"><div class="progress-label"><span>Capacidad</span><strong>${av}/${o.capacityTotal} ${o.unit}</strong></div><div class="bar"><span style="width:${pct}%"></span></div><p class="tiny" style="margin-top:8px">Usado/reservado: ${o.capacityUsed}. Revisión: ${o.expires}</p><div class="btnrow"><button class="btn" onclick="toggleOffer('${o.id}')">${o.status==='paused'?'Reactivar':'Pausar'}</button></div></div></div>`;
+    }
+    function renderAccountOffers(u){
+      document.getElementById('account-offers').innerHTML=`<div class="section-head"><div><h2>Mis ofertas</h2><p>Gestiona capacidad, evidencia y disponibilidad. Una oferta agotada deja de entrar en matches nuevos hasta que se reactive.</p></div></div><div class="offer-list">${u.offers.map(offerHTML).join('')}</div>`;
+    }
+    function renderAccountMatches(u,userMatches){
+      document.getElementById('account-matches').innerHTML=`<div class="section-head"><div><h2>Mis matches</h2><p>Oportunidades detectadas para este usuario. Las bloqueadas explican qué falta: capacidad, evidencia, geografía o revisión.</p></div></div><div class="match-list">${userMatches.map(matchHTML).join('')}</div>`;
+    }
+    function matchHTML(m){
+      const cls=m.status==='needs_review'?'orange':m.status.includes('blocked')||m.status.includes('verification')||m.status.includes('geo')?'red':'green';
+      return `<article class="card match-card"><div><div class="badge-row"><span class="badge ${m.type==='direct'?'green':m.type==='triangle'?'blue':'orange'}">${m.type==='direct'?'Directo':m.type==='triangle'?'Triangular':'Grupal'}</span><span class="badge ${cls}">${m.status.replaceAll('_',' ')}</span></div><h3>${m.title}</h3><p class="small">${m.why}</p><div class="graph">${m.users.map((id,i)=>`<span class="node">${users[id].name}</span>${i<m.users.length-1?'<span class="arrow">→</span>':''}`).join('')}</div><div class="divider"></div><p class="tiny"><strong>Acción:</strong> ${m.action}</p></div><div class="match-score"><strong>${m.score}</strong><span class="tiny">score</span><div class="btnrow"><button class="btn full" onclick="openMatchDetail('${m.id}')">Ver detalle</button><button class="btn primary full" onclick="approveMatch('${m.id}')">Aprobar</button></div></div></article>`;
+    }
+    function renderAccountAgreements(u){
+      document.getElementById('account-agreements').innerHTML=`<div class="grid two"><div class="card"><h3>Sala de acuerdos</h3><p>Cuando un match se aprueba, pasa aquí con condiciones, fecha, capacidad consumida, entregables y valoración posterior.</p><div class="divider"></div><div class="timeline"><div class="step"><span class="step-num">1</span><p>Match sugerido</p></div><div class="step"><span class="step-num">2</span><p>Oferta reservada temporalmente</p></div><div class="step"><span class="step-num">3</span><p>Condiciones aceptadas</p></div><div class="step"><span class="step-num">4</span><p>Acuerdo ejecutado y valorado</p></div></div></div><div class="card"><h3>Política de reservas</h3><p>Una reserva bloquea capacidad durante 72 horas. Si no se confirma, vuelve al inventario. Si se completa, actualiza reputación y disponibilidad.</p></div></div>`;
+    }
+    function renderAccountReputation(u){
+      document.getElementById('account-reputation').innerHTML=`<div class="grid two"><div class="card"><h3>Score de confianza: ${u.trust}/100</h3><div class="divider"></div>${repBar('Verificación de ofertas',u.verified*22)}${repBar('Cumplimiento de acuerdos',Math.min(100,u.agreements*24+20))}${repBar('Comunicación',u.response==='Alta'?88:u.response==='Media'?65:42)}${repBar('Equilibrio aportar/recibir',u.id==='fightgear'?38:72)}</div><div class="card"><h3>Lo que ven otros usuarios</h3><p class="small">No se muestra un “ranking social” opaco. Se muestran señales accionables: ofertas verificadas, acuerdos completados, cancelaciones, velocidad de respuesta y valoraciones.</p><div class="badge-row"><span class="badge green">${u.verified} verificaciones</span><span class="badge blue">${u.agreements} acuerdos</span><span class="badge orange">${u.response} respuesta</span></div></div></div>`;
+    }
+    function repBar(label,pct){return `<div style="margin:12px 0"><div class="progress-label"><span>${label}</span><strong>${Math.min(100,pct)}%</strong></div><div class="bar"><span style="width:${Math.min(100,pct)}%"></span></div></div>`}
+    function toggleOffer(id){
+      Object.values(users).forEach(u=>u.offers.forEach(o=>{if(o.id===id){o.status=o.status==='paused'?'active':'paused';}}));renderAccount();toast('Estado de oferta actualizado');
+    }
+
+    function showAdminTab(name){
+      document.querySelectorAll('#admin .tab').forEach(b=>b.classList.toggle('active',b.dataset.adminTab===name));
+      document.querySelectorAll('#admin .view').forEach(v=>v.classList.remove('active'));
+      document.getElementById('admin-'+name).classList.add('active');
+    }
+    function renderAdmin(){renderAdminRadar();renderAdminVerification();renderAdminConvergence();renderAdminRisk();renderAdminQueue();}
+    function renderAdminRadar(){
+      document.getElementById('admin-radar').innerHTML=`<div class="grid four"><div class="kpi"><strong>${Object.keys(users).length}</strong><span>usuarios</span></div><div class="kpi"><strong>${Object.values(users).flatMap(u=>u.offers).length}</strong><span>ofertas</span></div><div class="kpi"><strong>${matches.length}</strong><span>matches detectados</span></div><div class="kpi"><strong>${matches.filter(m=>m.status!=='needs_review').length}</strong><span>bloqueos/riesgos</span></div></div><div class="section match-list">${matches.map(matchHTML).join('')}</div>`;
+    }
+    function renderAdminVerification(){
+      const pending=Object.values(users).flatMap(u=>u.offers.map(o=>({...o,user:u}))).filter(o=>!o.verified);
+      document.getElementById('admin-verification').innerHTML=`<div class="notice">Prioridad: verificar ofertas que desbloquean matches de alto score. No todo necesita verificación fuerte; una muestra de producto no requiere lo mismo que un local o un vehículo.</div><table><thead><tr><th>Usuario</th><th>Oferta</th><th>Evidencia</th><th>Riesgo</th><th>Acción</th></tr></thead><tbody>${pending.map(o=>`<tr><td>${o.user.name}</td><td>${o.title}</td><td>${o.evidence}</td><td>${o.template.includes('Espacios')||o.template.includes('Operaciones')?'Alto':'Medio'}</td><td><button class="btn" onclick="verifyOffer('${o.id}')">Marcar verificada</button></td></tr>`).join('')}</tbody></table>`;
+    }
+    function verifyOffer(id){Object.values(users).forEach(u=>u.offers.forEach(o=>{if(o.id===id){o.verified=true;o.status=o.status==='pending'?'active':o.status;o.evidence='Evidencia revisada por admin';u.verified+=1;}}));renderAccount();renderAdmin();toast('Oferta verificada');}
+    function renderAdminConvergence(){
+      const cells=[
+        ['Bruma → Lúa','Espacio disponible parcial','good'],['Lúa → Marta','Producto para shooting','good'],['Marta → Bruma','Contenido, pero sin capacidad este mes','warn'],['Resultado','Triángulo viable en julio','warn'],
+        ['FightGear → Brava','Historia + producto piloto','good'],['Brava → La Semilla','Difusión local','good'],['La Semilla → FightGear','Escaparate físico posible','warn'],['Resultado','Validar encaje de producto','warn'],
+        ['Rueda → La Semilla','Fricción geográfica','bad'],['FightGear → Marta','Necesita fotos','good'],['Marta → FightGear','Capacidad agotada','bad'],['Resultado','Waitlist o sustituto','bad']
+      ];
+      document.getElementById('admin-convergence').innerHTML=`<div class="notice blue"><strong>Mapa de convergencia:</strong> una oportunidad converge cuando todos los nodos tienen algo que recibir, algo que aportar y capacidad suficiente en la misma ventana temporal.</div><div class="section matrix">${cells.map(c=>`<div class="cell ${c[2]}"><strong>${c[0]}</strong><p class="tiny">${c[1]}</p></div>`).join('')}</div>`;
+    }
+    function renderAdminRisk(){
+      document.getElementById('admin-risk').innerHTML=`<table><thead><tr><th>Usuario</th><th>Confianza</th><th>Riesgo actual</th><th>Motivo</th><th>Recomendación</th></tr></thead><tbody>${Object.values(users).map(u=>{const pending=u.offers.filter(o=>!o.verified).length;const exhausted=u.offers.filter(o=>available(o)===0).length;return `<tr><td>${u.name}</td><td>${u.trust}/100</td><td>${pending?'Medio':exhausted?'Capacidad agotada':'Bajo'}</td><td>${pending?pending+' oferta(s) sin verificar':exhausted?'Ofertas consumidas temporalmente':'Sin alertas graves'}</td><td>${u.id==='fightgear'?'Pedir fotos, stock, precios y límites de producto':'Mantener calendario y evidencias al día'}</td></tr>`}).join('')}</tbody></table>`;
+    }
+    function renderAdminQueue(){
+      document.getElementById('admin-queue').innerHTML=`<div class="section-head"><div><h2>Propuestas recibidas</h2><p>Guardadas en localStorage durante la demo.</p></div><button class="btn danger" onclick="clearProposals()">Limpiar</button></div>${proposals.length?`<table><thead><tr><th>Fecha</th><th>Nombre</th><th>Tipo</th><th>Mensaje</th></tr></thead><tbody>${proposals.map(p=>`<tr><td>${p.date}</td><td>${p.name}</td><td>${p.kind}</td><td>${p.message}</td></tr>`).join('')}</tbody></table>`:'<div class="notice">No hay propuestas guardadas todavía.</div>'}`;
+    }
+    function clearProposals(){proposals=[];localStorage.setItem('empujeProposalsV2','[]');renderAdminQueue();toast('Propuestas limpiadas')}
+    function recalculateMatches(){toast('Radar recalculado con capacidad, evidencia y riesgo')}
+
+    function openModal(kind){
+      const mb=document.getElementById('modalBackdrop');mb.classList.add('open');
+      if(kind==='proposal') proposalModal();
+      if(kind==='beta') betaModal();
+      if(kind==='newOffer') newOfferModal();
+    }
+    function closeModal(){document.getElementById('modalBackdrop').classList.remove('open')}
+    function openProposalFor(id){openModal('proposal');document.getElementById('proposalTarget').value=users[id].name}
+    function proposalModal(){
+      document.getElementById('modalTitle').textContent='Proponer empuje';document.getElementById('modalSubtitle').textContent='La propuesta no activa un acuerdo automáticamente. Primero se revisa capacidad, evidencia y encaje.';
+      document.getElementById('modalBody').innerHTML=`<div class="form-grid"><div class="field"><label>Tu nombre</label><input id="pName"></div><div class="field"><label>Perfil objetivo</label><input id="proposalTarget" placeholder="Ej. Cafetería Bruma"></div><div class="field"><label>Tipo</label><select id="pKind"><option>Directa</option><option>Triangular</option><option>Grupal</option><option>No lo sé</option></select></div><div class="field"><label>Valor estimado</label><input id="pValue" placeholder="Ej. 150 € o 4 horas"></div><div class="field full"><label>Qué necesitas</label><textarea id="pNeed"></textarea></div><div class="field full"><label>Qué puedes aportar y con qué capacidad</label><textarea id="pOffer"></textarea></div><div class="field full"><label>Mensaje</label><textarea id="pMsg"></textarea></div></div><div class="btnrow"><button class="btn primary" onclick="saveProposal()">Enviar propuesta</button><button class="btn" onclick="closeModal()">Cancelar</button></div>`;
+    }
+    function saveProposal(){proposals.unshift({date:new Date().toLocaleDateString('es-ES'),name:document.getElementById('pName').value||'Usuario beta',kind:document.getElementById('pKind').value,message:document.getElementById('pMsg').value||document.getElementById('pNeed').value||'Sin mensaje'});localStorage.setItem('empujeProposalsV2',JSON.stringify(proposals));closeModal();toast('Propuesta recibida para revisión')}
+    function betaModal(){
+      document.getElementById('modalTitle').textContent='Solicitar acceso beta';document.getElementById('modalSubtitle').textContent='El onboarding pide aportaciones verificables, aunque sean pequeñas.';
+      document.getElementById('modalBody').innerHTML=`<div class="form-grid"><div class="field"><label>Nombre</label><input></div><div class="field"><label>Email</label><input></div><div class="field"><label>Ciudad</label><input></div><div class="field"><label>Fase</label><select><option>Idea</option><option>Vendiendo a conocidos</option><option>Primeras ventas</option><option>Negocio funcionando</option></select></div><div class="field full"><label>Qué puedes ofrecer, aunque parezca pequeño</label><textarea placeholder="Espacio, producto, conocimiento, feedback, audiencia, tiempo, proveedores, casos reales..."></textarea></div><div class="field full"><label>Qué evidencia puedes aportar</label><textarea placeholder="Fotos, enlaces, portfolio, métricas, stock, reseñas, experiencia..."></textarea></div></div><div class="btnrow"><button class="btn primary" onclick="closeModal();toast('Solicitud beta recibida')">Solicitar acceso</button></div>`;
+    }
+    function newOfferModal(){
+      document.getElementById('modalTitle').textContent='Añadir oferta verificable';document.getElementById('modalSubtitle').textContent='Toda oferta necesita plantilla, capacidad, evidencia y restricciones.';
+      document.getElementById('modalBody').innerHTML=`<div class="form-grid"><div class="field"><label>Nombre de la oferta</label><input id="newOfferTitle"></div><div class="field"><label>Plantilla</label><select id="newOfferTemplate">${templates.map(t=>`<option>${t.cat}</option>`).join('')}</select></div><div class="field"><label>Capacidad total</label><input type="number" id="newOfferCap" value="1"></div><div class="field"><label>Unidad</label><input id="newOfferUnit" placeholder="sesiones/mes, tardes, unidades..."></div><div class="field full"><label>Evidencia</label><textarea id="newOfferEvidence"></textarea></div><div class="field full"><label>Restricciones</label><textarea id="newOfferRestrictions"></textarea></div></div><div class="btnrow"><button class="btn primary" onclick="addOffer()">Guardar oferta</button></div>`;
+    }
+    function addOffer(){const u=users[currentUser];u.offers.unshift({id:'o'+Math.random().toString(36).slice(2,7),title:document.getElementById('newOfferTitle').value||'Nueva oferta',template:document.getElementById('newOfferTemplate').value,tags:['nuevo'],status:'pending',verified:false,evidence:document.getElementById('newOfferEvidence').value||'Pendiente de evidencia',capacityTotal:Number(document.getElementById('newOfferCap').value||1),capacityUsed:0,unit:document.getElementById('newOfferUnit').value||'unidad',expires:'2026-08-31',restrictions:document.getElementById('newOfferRestrictions').value||'Pendiente de definir'});closeModal();renderAccount();toast('Oferta añadida pendiente de verificación')}
+    function openMatchDetail(id){
+      const m=matches.find(x=>x.id===id);document.getElementById('modalBackdrop').classList.add('open');document.getElementById('modalTitle').textContent=m.title;document.getElementById('modalSubtitle').textContent='Detalle de valor, capacidad y riesgos.';
+      document.getElementById('modalBody').innerHTML=`<div class="badge-row"><span class="badge green">Score ${m.score}</span><span class="badge">${m.type}</span><span class="badge orange">${m.status.replaceAll('_',' ')}</span></div><p>${m.why}</p><div class="graph">${m.users.map((id,i)=>`<span class="node">${users[id].name}</span>${i<m.users.length-1?'<span class="arrow">→</span>':''}`).join('')}</div><div class="divider"></div><h3>Qué aporta cada uno</h3><ul>${m.gives.map(g=>`<li>${g}</li>`).join('')}</ul><div class="notice ${m.status==='needs_review'?'green':'red'}"><strong>Riesgo:</strong> ${m.risk}<br><strong>Acción recomendada:</strong> ${m.action}</div><div class="divider"></div><h3>Mensaje sugerido</h3><p class="notice" id="suggestedMsg">Hola, he visto una posible colaboración entre ${m.users.map(id=>users[id].name).join(', ')}. La idea sería empezar con un piloto pequeño: ${m.action} ¿Os interesa que os pase una propuesta con condiciones y fechas?</p><div class="btnrow"><button class="btn" onclick="copySuggested()">Copiar mensaje</button><button class="btn primary" onclick="approveMatch('${m.id}')">Marcar aprobado</button></div>`;
+    }
+    function copySuggested(){navigator.clipboard?.writeText(document.getElementById('suggestedMsg').textContent);toast('Mensaje copiado')}
+    function approveMatch(id){const m=matches.find(x=>x.id===id); if(m.status.includes('blocked')||m.status.includes('verification')){toast('No aprobado: falta capacidad o verificación');return;} m.status='approved';toast('Match aprobado y listo para sala de acuerdos');renderAdmin();renderAccount();}
+    function downloadCatalogNote(){navigator.clipboard?.writeText(templates.map(t=>`${t.cat}: ${t.examples.join(', ')}. Evidencia: ${t.evidence} Capacidad: ${t.capacity}`).join('\n\n'));toast('Resumen de plantillas copiado')}
+    function calcRevenue(){const pm=+document.getElementById('paidMembers')?.value||0, ap=+document.getElementById('avgPrice')?.value||0, cc=+document.getElementById('conciergeCount')?.value||0, cp=+document.getElementById('conciergePrice')?.value||0, ci=+document.getElementById('circleCount')?.value||0, cip=+document.getElementById('circlePrice')?.value||0; const total=pm*ap+cc*cp+ci*cip; const el=document.getElementById('revenueResult'); if(el) el.innerHTML=`<strong>MRR estimado: ${total.toLocaleString('es-ES')} €/mes.</strong> Membresías: ${(pm*ap).toLocaleString('es-ES')} €, concierge: ${(cc*cp).toLocaleString('es-ES')} €, círculos: ${(ci*cip).toLocaleString('es-ES')} €.`}
+
+    renderDirectory();renderCatalog();populateAccountSelect();renderAccount();renderAdmin();calcRevenue();
+  </script>
+</body>
+</html>

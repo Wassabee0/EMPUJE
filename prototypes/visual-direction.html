@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empuje · Dirección visual prototipo</title>
+  <style>
+    :root {
+      --stage: #8e8f98;
+      --shell: #f7f7f5;
+      --ink: #252c35;
+      --ink-2: #303945;
+      --ink-3: #46505d;
+      --muted: #818995;
+      --line: rgba(255, 255, 255, 0.18);
+      --soft-line: #e6e7e4;
+      --white: #ffffff;
+      --coral: #dc7b73;
+      --coral-dark: #bd5f58;
+      --violet: #5742c7;
+      --lime: #bfd36f;
+      --blue: #819ab7;
+      --green: #84b886;
+      --shadow: 0 34px 90px rgba(24, 28, 34, 0.26);
+      --tight: 8px;
+      --round: 28px;
+      --pill: 999px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--stage);
+      color: var(--ink);
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family:
+        Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 20% 8%, rgba(255, 255, 255, 0.18), transparent 22rem),
+        var(--stage);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    p,
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.45;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 28px));
+      margin: 52px auto 80px;
+    }
+
+    .prototype-shell {
+      position: relative;
+      overflow: hidden;
+      border: 8px solid var(--shell);
+      border-radius: 52px;
+      background: var(--shell);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      position: relative;
+      min-height: 625px;
+      overflow: hidden;
+      border-radius: 40px 40px 38px 38px;
+      background:
+        linear-gradient(90deg, rgba(37, 44, 53, 0.97) 0%, rgba(37, 44, 53, 0.86) 46%, rgba(37, 44, 53, 0.26) 100%),
+        url("https://images.unsplash.com/photo-1531572753322-ad063cecc140?auto=format&fit=crop&w=1800&q=85");
+      background-position: center;
+      background-size: cover;
+      color: white;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 155px;
+      background: var(--shell);
+      clip-path: polygon(0 50%, 37% 50%, 42% 28%, 100% 28%, 100% 100%, 0 100%);
+      z-index: 1;
+    }
+
+    .nav {
+      position: relative;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 36px 70px 0;
+      font-size: 13px;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 3px;
+      font-size: 9px;
+      line-height: 0.9;
+      color: rgba(255, 255, 255, 0.84);
+      letter-spacing: -0.04em;
+    }
+
+    .nav-links,
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 26px;
+    }
+
+    .nav-links a {
+      color: rgba(255, 255, 255, 0.82);
+      font-weight: 650;
+    }
+
+    .nav-links a.active {
+      color: var(--coral);
+    }
+
+    .login {
+      color: rgba(255, 255, 255, 0.82);
+      background: transparent;
+      border: 0;
+      padding: 0;
+    }
+
+    .signup {
+      min-height: 36px;
+      padding: 0 18px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: var(--pill);
+      background: transparent;
+      color: white;
+      font-weight: 700;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 3;
+      width: min(650px, 100%);
+      padding: 80px 70px 0;
+    }
+
+    .accent-asset {
+      position: relative;
+      width: 182px;
+      height: 67px;
+      margin-bottom: 26px;
+      border-radius: 18px;
+      background: var(--violet);
+      overflow: hidden;
+    }
+
+    .paper-fold {
+      position: absolute;
+      right: 28px;
+      top: 12px;
+      width: 76px;
+      height: 48px;
+      transform: rotate(12deg);
+      border-radius: 7px 7px 28px 7px;
+      background:
+        linear-gradient(135deg, #fff 0%, #f3f3ef 58%, #c6cad0 59%, #fafafa 100%);
+      box-shadow: 0 12px 22px rgba(0, 0, 0, 0.22);
+    }
+
+    .paper-dot {
+      position: absolute;
+      right: 36px;
+      top: 4px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #ffba4a, #e85d25);
+      box-shadow: 0 12px 24px rgba(232, 93, 37, 0.4);
+    }
+
+    h1 {
+      max-width: 610px;
+      font-size: clamp(46px, 5.3vw, 64px);
+      line-height: 0.94;
+      letter-spacing: -0.075em;
+      font-weight: 900;
+    }
+
+    .lead {
+      max-width: 470px;
+      margin-top: 20px;
+      font-size: 15px;
+    }
+
+    .search-panel {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      align-items: center;
+      gap: 14px;
+      width: min(560px, calc(100vw - 84px));
+      margin-top: 28px;
+      padding: 11px;
+      border-radius: 14px;
+      background: var(--white);
+      color: var(--ink);
+      box-shadow: 0 22px 44px rgba(0, 0, 0, 0.28);
+    }
+
+    .search-field {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 8px 9px;
+      border-right: 1px solid #ececeb;
+    }
+
+    .search-field:last-of-type {
+      border-right: 0;
+    }
+
+    .icon-dot {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #f3ebe8;
+      color: var(--coral);
+      font-size: 13px;
+    }
+
+    .field-kicker {
+      display: block;
+      color: #a2a6aa;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .field-value {
+      display: block;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 850;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .search-button {
+      min-height: 48px;
+      padding: 0 28px;
+      border: 0;
+      border-radius: 9px;
+      background: var(--violet);
+      color: white;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .quick-links {
+      display: flex;
+      gap: 34px;
+      margin-top: 28px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      font-weight: 760;
+    }
+
+    .quick-links span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quick-links b {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: white;
+      color: var(--ink);
+      font-size: 11px;
+    }
+
+    .float-card {
+      position: absolute;
+      z-index: 3;
+      width: 240px;
+      min-height: 160px;
+      padding: 24px;
+      border-radius: 18px;
+      background: rgba(72, 83, 97, 0.95);
+      color: white;
+      box-shadow: 0 22px 54px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
+    }
+
+    .float-card h3 {
+      margin-bottom: 13px;
+      font-size: 25px;
+      letter-spacing: -0.04em;
+    }
+
+    .float-card p {
+      max-width: 165px;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 13px;
+    }
+
+    .float-card .round-icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 16px;
+      border-radius: 50%;
+      background: var(--lime);
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    .float-card.main {
+      top: 244px;
+      right: 282px;
+    }
+
+    .float-card.ghost {
+      top: 270px;
+      right: 77px;
+      opacity: 0.7;
+      transform: translateX(38px);
+    }
+
+    .coral-note {
+      position: absolute;
+      z-index: 4;
+      top: 133px;
+      right: 255px;
+      width: 195px;
+      padding: 19px 20px;
+      border-radius: 15px;
+      background: var(--coral);
+      color: white;
+      box-shadow: 0 20px 42px rgba(0, 0, 0, 0.24);
+      font-size: 21px;
+      line-height: 1.05;
+      font-weight: 850;
+      letter-spacing: -0.04em;
+    }
+
+    .dark-meta {
+      position: absolute;
+      z-index: 3;
+      right: 132px;
+      bottom: 128px;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .partner-dock {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      grid-template-columns: 260px repeat(4, 1fr);
+      gap: 14px;
+      align-items: center;
+      margin: -58px 26px 25px 86px;
+      min-height: 112px;
+    }
+
+    .example-mini {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 16px;
+      align-items: center;
+      padding: 12px;
+      border-radius: 18px;
+      background: var(--white);
+      box-shadow: 0 18px 36px rgba(34, 39, 45, 0.08);
+    }
+
+    .mini-photo {
+      height: 76px;
+      border-radius: 14px;
+      background:
+        linear-gradient(135deg, rgba(37, 44, 53, 0.14), transparent),
+        url("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=400&q=80");
+      background-position: center;
+      background-size: cover;
+    }
+
+    .mini-place {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .mini-title {
+      display: block;
+      margin: 4px 0;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.18;
+    }
+
+    .mini-score {
+      display: inline-flex;
+      padding: 4px 7px;
+      border-radius: var(--pill);
+      background: #d8ed88;
+      color: #3f4c12;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .dock-pill {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 78px;
+      padding: 0 18px;
+      border: 1px solid #e2e4e2;
+      border-radius: 19px;
+      background: #fbfbfa;
+      color: #2b3138;
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.055em;
+      box-shadow: 0 12px 28px rgba(34, 39, 45, 0.06);
+    }
+
+    .dock-pill small {
+      margin-left: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .below {
+      padding: 34px 46px 44px;
+      background: var(--shell);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 22px;
+      align-items: flex-end;
+      margin-bottom: 22px;
+    }
+
+    .section-head h2 {
+      max-width: 660px;
+      color: var(--ink);
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 0.98;
+      letter-spacing: -0.07em;
+      font-weight: 920;
+    }
+
+    .section-head p,
+    .light-card p {
+      color: #737a83;
+    }
+
+    .prototype-tabs {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      min-height: 39px;
+      padding: 0 15px;
+      border: 1px solid #dadcd9;
+      border-radius: var(--pill);
+      background: white;
+      color: var(--ink-3);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tab.active {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: white;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .light-card {
+      min-height: 205px;
+      padding: 23px;
+      border: 1px solid #e1e3e0;
+      border-radius: 19px;
+      background: white;
+      box-shadow: 0 18px 42px rgba(35, 42, 49, 0.07);
+    }
+
+    .light-card.dark {
+      background: var(--ink);
+      color: white;
+    }
+
+    .light-card.dark p {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    .light-card.coral {
+      background: #fff2f0;
+      border-color: #f1c9c5;
+    }
+
+    .light-card.green {
+      background: #f3f9ee;
+      border-color: #dceac4;
+    }
+
+    .label-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin: 14px 0;
+    }
+
+    .label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: var(--pill);
+      background: #f0f1ef;
+      color: #69717a;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .label.ok {
+      background: #e9f4d2;
+      color: #536515;
+    }
+
+    .label.hot {
+      background: #ffe2de;
+      color: #95443d;
+    }
+
+    .label.blue {
+      background: #e9eff6;
+      color: #506984;
+    }
+
+    .card-title {
+      margin-bottom: 9px;
+      color: inherit;
+      font-size: 23px;
+      line-height: 1.04;
+      letter-spacing: -0.055em;
+      font-weight: 920;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      min-height: 110px;
+      padding: 18px;
+      border: 1px solid #e1e3e0;
+      border-radius: 18px;
+      background: white;
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--ink);
+      font-size: 32px;
+      letter-spacing: -0.06em;
+      line-height: 1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .stack {
+      display: grid;
+      gap: 13px;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 13px;
+      align-items: center;
+      padding: 14px;
+      border: 1px solid #e1e3e0;
+      border-radius: 17px;
+      background: white;
+    }
+
+    .queue-icon {
+      width: 43px;
+      height: 43px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: #edf2e1;
+      color: #536515;
+      font-weight: 900;
+    }
+
+    .queue-score {
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: white;
+      font-weight: 920;
+    }
+
+    .match-map {
+      position: relative;
+      min-height: 360px;
+      overflow: hidden;
+      border-radius: 22px;
+      background:
+        linear-gradient(135deg, rgba(37, 44, 53, 0.94), rgba(37, 44, 53, 0.7)),
+        url("https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=85");
+      background-position: center;
+      background-size: cover;
+    }
+
+    .match-node {
+      position: absolute;
+      min-width: 150px;
+      padding: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.13);
+      color: white;
+      backdrop-filter: blur(12px);
+    }
+
+    .match-node p {
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 12px;
+    }
+
+    .match-node.one {
+      top: 42px;
+      left: 44px;
+    }
+
+    .match-node.two {
+      top: 145px;
+      right: 54px;
+    }
+
+    .match-node.three {
+      left: 155px;
+      bottom: 42px;
+      background: var(--coral);
+    }
+
+    .line {
+      position: absolute;
+      height: 2px;
+      background: rgba(191, 211, 111, 0.75);
+      transform-origin: left center;
+    }
+
+    .line.a {
+      width: 250px;
+      top: 117px;
+      left: 192px;
+      transform: rotate(16deg);
+    }
+
+    .line.b {
+      width: 235px;
+      top: 226px;
+      left: 290px;
+      transform: rotate(-24deg);
+    }
+
+    .form-preview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field {
+      padding: 13px;
+      border: 1px solid #e1e3e0;
+      border-radius: 15px;
+      background: white;
+    }
+
+    .field small {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .field b {
+      display: block;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .bar {
+      height: 8px;
+      overflow: hidden;
+      margin-top: 10px;
+      border-radius: var(--pill);
+      background: #eceeea;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: var(--pill);
+      background: linear-gradient(90deg, var(--coral), var(--lime));
+    }
+
+    .mobile-note {
+      display: none;
+      margin: 18px 0 0;
+      padding: 13px 15px;
+      border-radius: 15px;
+      background: white;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1040px) {
+      .page {
+        margin-top: 20px;
+      }
+
+      .nav {
+        padding: 28px 34px 0;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        min-height: auto;
+        padding-bottom: 155px;
+      }
+
+      .hero-copy {
+        padding: 58px 34px 0;
+      }
+
+      .float-card,
+      .coral-note,
+      .dark-meta {
+        display: none;
+      }
+
+      .partner-dock {
+        grid-template-columns: 1fr 1fr;
+        margin: -82px 22px 22px;
+      }
+
+      .example-mini {
+        grid-column: 1 / -1;
+      }
+
+      .below {
+        padding: 30px 24px 38px;
+      }
+
+      .grid.three,
+      .grid.two,
+      .workflow,
+      .form-preview {
+        grid-template-columns: 1fr;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        width: min(100% - 14px, 1180px);
+        margin-bottom: 32px;
+      }
+
+      .prototype-shell {
+        border-width: 5px;
+        border-radius: 34px;
+      }
+
+      .hero {
+        border-radius: 27px;
+      }
+
+      .hero::after {
+        clip-path: polygon(0 58%, 100% 40%, 100% 100%, 0 100%);
+      }
+
+      .nav {
+        padding: 20px 20px 0;
+      }
+
+      .nav-actions {
+        gap: 8px;
+      }
+
+      .login {
+        display: none;
+      }
+
+      .hero-copy {
+        padding: 42px 22px 0;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      .search-panel {
+        grid-template-columns: 1fr;
+        width: 100%;
+      }
+
+      .search-field {
+        border-right: 0;
+        border-bottom: 1px solid #ececeb;
+      }
+
+      .quick-links {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .partner-dock {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .match-map {
+        min-height: 430px;
+      }
+
+      .match-node {
+        left: 20px !important;
+        right: 20px !important;
+        min-width: 0;
+      }
+
+      .match-node.one {
+        top: 28px;
+      }
+
+      .match-node.two {
+        top: 155px;
+      }
+
+      .match-node.three {
+        bottom: 32px;
+      }
+
+      .line {
+        display: none;
+      }
+
+      .mobile-note {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="prototype-shell">
+      <section class="hero" aria-label="Primera pantalla Empuje">
+        <nav class="nav">
+          <a class="mark" href="#" aria-label="Empuje">Em<br />puje</a>
+          <div class="nav-links" aria-label="Navegación prototipo">
+            <a class="active" href="#inicio">Inicio</a>
+            <a href="#ejemplos">Ejemplos</a>
+            <a href="#verificacion">Verificación</a>
+            <a href="#admin">Admin</a>
+            <a href="#beta">Beta</a>
+          </div>
+          <div class="nav-actions">
+            <button class="login" type="button">Entrar</button>
+            <button class="signup" type="button">Solicitar beta</button>
+          </div>
+        </nav>
+
+        <div class="hero-copy" id="inicio">
+          <div class="accent-asset" aria-hidden="true">
+            <div class="paper-fold"></div>
+            <div class="paper-dot"></div>
+          </div>
+          <h1>Oportunidades privadas para negocios reales.</h1>
+          <p class="lead">
+            Empuje no es un directorio público. Es una beta revisada para descubrir qué puede ofrecer cada persona,
+            comprobarlo y convertirlo en matches útiles en España.
+          </p>
+
+          <div class="search-panel" aria-label="Búsqueda conceptual de beta">
+            <div class="search-field">
+              <span class="icon-dot">⌂</span>
+              <span>
+                <span class="field-kicker">Estoy en</span>
+                <span class="field-value">Madrid · Valencia · Barcelona</span>
+              </span>
+            </div>
+            <div class="search-field">
+              <span class="icon-dot">↔</span>
+              <span>
+                <span class="field-kicker">Necesito</span>
+                <span class="field-value">espacio, clientes, canal</span>
+              </span>
+            </div>
+            <button class="search-button" type="button">Aplicar</button>
+          </div>
+
+          <div class="quick-links">
+            <span>Ofrecer algo <b>↓</b></span>
+            <span>Pedir ayuda <b>↓</b></span>
+          </div>
+        </div>
+
+        <div class="coral-note">Oferta revisada, no promesa vacía</div>
+
+        <article class="float-card main">
+          <div class="round-icon">✓</div>
+          <h3>Verificable</h3>
+          <p>Fotos, enlaces, métricas, stock, disponibilidad y límites claros.</p>
+        </article>
+
+        <article class="float-card ghost">
+          <div class="round-icon">↗</div>
+          <h3>Privado</h3>
+          <p>Los miembros solo ven matches aprobados para su cuenta.</p>
+        </article>
+
+        <div class="dark-meta">
+          Madrid · Barcelona · Valencia<br />
+          Beta gratis mientras validamos liquidez
+        </div>
+      </section>
+
+      <div class="partner-dock">
+        <article class="example-mini">
+          <div class="mini-photo" aria-hidden="true"></div>
+          <div>
+            <div class="mini-place">Lavapiés · Madrid</div>
+            <strong class="mini-title">Cafetería con tardes libres</strong>
+            <span class="mini-score">Match 84</span>
+          </div>
+        </article>
+        <div class="dock-pill">Espacios <small>locales</small></div>
+        <div class="dock-pill">Stock <small>útil</small></div>
+        <div class="dock-pill">Canales <small>reales</small></div>
+        <div class="dock-pill">Servicios <small>acotados</small></div>
+      </div>
+
+      <section class="below">
+        <div class="section-head">
+          <div>
+            <h2>La estructura visual funciona mejor como producto operativo.</h2>
+            <p>
+              El look de referencia se mantiene: cápsula grande, hero oscuro, tarjetas flotantes, coral como señal
+              humana y franja blanca inferior. Lo adapto a Empuje con privacidad, verificación y matches.
+            </p>
+          </div>
+          <div class="prototype-tabs" role="tablist" aria-label="Vistas del prototipo">
+            <button class="tab active" type="button" data-view="public">Público</button>
+            <button class="tab" type="button" data-view="onboarding">Onboarding</button>
+            <button class="tab" type="button" data-view="admin">Admin</button>
+          </div>
+        </div>
+
+        <div class="view active" id="view-public">
+          <div class="grid three" id="ejemplos">
+            <article class="light-card coral">
+              <div class="label-row">
+                <span class="label hot">Ejemplo público</span>
+                <span class="label">no real</span>
+              </div>
+              <h3 class="card-title">Una marca pequeña necesita una primera cata.</h3>
+              <p>
+                Podría ofrecer muestras y contenido. Podría necesitar un local con paso de barrio y una fecha concreta.
+              </p>
+            </article>
+            <article class="light-card">
+              <div class="label-row">
+                <span class="label ok">Oferta con capacidad</span>
+                <span class="label">2 slots/mes</span>
+              </div>
+              <h3 class="card-title">Una fotógrafa busca casos visibles.</h3>
+              <p>
+                Puede ofrecer un pack limitado de producto. Necesita negocios con algo real que fotografiar y permiso
+                para publicar el antes/después.
+              </p>
+            </article>
+            <article class="light-card dark">
+              <div class="label-row">
+                <span class="label blue">Privado</span>
+                <span class="label">revisado</span>
+              </div>
+              <h3 class="card-title">El match no se publica. Se aprueba.</h3>
+              <p>
+                El usuario no navega todo el inventario. Ve oportunidades relevantes cuando el fundador las revisa.
+              </p>
+            </article>
+          </div>
+        </div>
+
+        <div class="view" id="view-onboarding">
+          <div class="workflow" id="verificacion">
+            <article class="light-card green">
+              <div class="label-row">
+                <span class="label ok">Paso 1</span>
+                <span class="label">aportación</span>
+              </div>
+              <h3 class="card-title">El usuario entiende qué debe probar.</h3>
+              <p>
+                La UI debería guiar con plantillas: espacio, audiencia, stock, servicio, validación, evento,
+                distribución, contactos, conocimiento o tiempo.
+              </p>
+              <div class="bar"><span style="width: 74%"></span></div>
+            </article>
+
+            <div class="form-preview">
+              <div class="field">
+                <small>Tipo de aportación</small>
+                <b>Espacio en horas tranquilas</b>
+              </div>
+              <div class="field">
+                <small>Capacidad</small>
+                <b>2 tardes al mes · máximo 12 personas</b>
+              </div>
+              <div class="field">
+                <small>Evidencia requerida</small>
+                <b>Fotos actuales, ubicación aproximada y condiciones del espacio</b>
+              </div>
+              <div class="field">
+                <small>Restricciones</small>
+                <b>No cocina caliente, solo martes y miércoles</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-admin">
+          <div class="metric-grid">
+            <div class="metric"><strong>118</strong><span>candidatos calculados</span></div>
+            <div class="metric"><strong>23</strong><span>listos para revisión rápida</span></div>
+            <div class="metric"><strong>41</strong><span>bloqueados por evidencia</span></div>
+            <div class="metric"><strong>16</strong><span>ofertas sin capacidad</span></div>
+          </div>
+
+          <div class="workflow" id="admin">
+            <div class="stack">
+              <article class="queue-item">
+                <div class="queue-icon">84</div>
+                <div>
+                  <strong>Cafetería Bruma → Marca de té frío</strong>
+                  <p style="color:#737a83;font-size:13px">Oferta verificada · 1 de 2 slots disponible</p>
+                </div>
+                <div class="queue-score">OK</div>
+              </article>
+              <article class="queue-item">
+                <div class="queue-icon">71</div>
+                <div>
+                  <strong>Newsletter local → Cosmética natural</strong>
+                  <p style="color:#737a83;font-size:13px">Necesita métricas recientes antes de intro</p>
+                </div>
+                <div class="queue-score" style="background:var(--coral)">!</div>
+              </article>
+              <article class="queue-item">
+                <div class="queue-icon">0</div>
+                <div>
+                  <strong>Showroom reservado</strong>
+                  <p style="color:#737a83;font-size:13px">No genera candidatos hasta liberar capacidad</p>
+                </div>
+                <div class="queue-score" style="background:#8b919a">PAU</div>
+              </article>
+            </div>
+
+            <div class="match-map">
+              <div class="line a"></div>
+              <div class="line b"></div>
+              <article class="match-node one">
+                <strong>Oferta</strong>
+                <p>Espacio verificado con capacidad parcial</p>
+              </article>
+              <article class="match-node two">
+                <strong>Necesidad</strong>
+                <p>Marca busca prueba local y contenido</p>
+              </article>
+              <article class="match-node three">
+                <strong>Decisión fundador</strong>
+                <p>Aprobar, pedir evidencia o pausar</p>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <p class="mobile-note">
+          En móvil, este concepto se convierte en una experiencia vertical: hero, CTA, ejemplos y después vistas
+          operativas. La estética se conserva sin forzar las tarjetas flotantes.
+        </p>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll(".tab");
+    const views = document.querySelectorAll(".view");
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((item) => item.classList.remove("active"));
+        views.forEach((view) => view.classList.remove("active"));
+        tab.classList.add("active");
+        document.getElementById(`view-${tab.dataset.view}`).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>
