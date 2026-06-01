@@ -75,6 +75,27 @@ La migración adicional `supabase/migrations/20260527002854_materialized_match_c
 
 La migración `supabase/migrations/20260527090000_offer_capacity_and_contribution_templates.sql` añade plantillas/categorías de aportación, estado de disponibilidad, capacidad, restricciones y columnas de capacidad para candidatos. Aplica las tres migraciones antes de usar el panel real.
 
+### Acceso beta y controles antiabuso
+
+La producción debe lanzarse como beta por invitación. Define `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only` en Vercel para ocultar el alta pública y hacer que los enlaces mágicos no creen usuarios nuevos. Crea usuarios beta manualmente desde Supabase Auth o activa el hook `app_private.require_beta_invite(event jsonb)` incluido en la migración `20260601075345_beta_access_onboarding_quotas.sql` como Auth Hook `Before User Created`.
+
+Antes de abrir tráfico externo:
+
+1. En Supabase Auth, mantén email confirmation activado.
+2. En Auth → Hooks, configura `Before User Created` con la función Postgres `app_private.require_beta_invite`.
+3. En Auth → Bot and Abuse Protection, activa CAPTCHA con Cloudflare Turnstile o hCaptcha.
+4. En Auth → Rate Limits, revisa límites de OTP/magic-link, signup confirmation y email sends.
+5. Mantén Google OAuth desactivado hasta verificar que el hook bloquea usuarios no invitados creados por OAuth.
+
+Cuotas actuales por usuario:
+
+- 1 oferta principal de onboarding.
+- 1 necesidad principal de onboarding.
+- 8 enlaces de evidencia HTTP(S), normalizados y deduplicados.
+- 5 archivos de evidencia.
+- 20 MB acumulados en archivos de evidencia.
+- 10 MB por archivo desde la configuración del bucket privado `evidence`.
+
 ## Auth con Google
 
 La recomendación es mantener Supabase Auth como backend de identidad, sesión y RLS. Google debe añadirse como proveedor OAuth dentro de Supabase, no sustituir a Supabase.
@@ -141,4 +162,10 @@ El panel fundador incluye un botón “Regenerar candidatos” para materializar
 
 ## Prototipo Antiguo
 
-`preview.html` y `prototypes/preview.html` quedan como historia de producto. No son la arquitectura de producción ni deben usarse para recoger usuarios de Reddit. Si arrancas `server.js` para revisar el prototipo antiguo, define `ADMIN_PIN`; la exportación admin queda desactivada cuando falta ese valor.
+`preview.html` y `prototypes/preview.html` quedan como historia de producto. No son la arquitectura de producción ni deben usarse para recoger usuarios de Reddit. `server.js` es solo un prototipo local legado, no está expuesto como script npm, se niega a arrancar en entornos de producción o Vercel, exige `LEGACY_SERVER_MODE=local`, escucha solo en `127.0.0.1` y no acepta PIN admin en query string.
+
+Para revisarlo localmente:
+
+```bash
+LEGACY_SERVER_MODE=local ADMIN_PIN=2468 node server.js
+```

@@ -13,9 +13,19 @@ type AuthFormProps = {
   nextPath: string;
 };
 
+function betaSignupEnabled() {
+  const mode = process.env.NEXT_PUBLIC_BETA_ACCESS_MODE;
+  if (mode) return mode === "open_signup";
+  return process.env.NODE_ENV !== "production";
+}
+
 export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>(initialMode);
+  const signupEnabled = betaSignupEnabled();
+  const [mode, setMode] = useState<AuthMode>(
+    !signupEnabled && initialMode === "signup" ? "signin" : initialMode,
+  );
+  const effectiveMode = !signupEnabled && mode === "signup" ? "signin" : mode;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -26,10 +36,10 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
   );
 
   const title = useMemo(() => {
-    if (mode === "signup") return "Crea tu cuenta beta";
-    if (mode === "magic") return "Recibe un enlace mágico";
+    if (effectiveMode === "signup") return "Crea tu cuenta beta";
+    if (effectiveMode === "magic") return "Recibe un enlace mágico";
     return "Entra en Empuje";
-  }, [mode]);
+  }, [effectiveMode]);
 
   async function handleGoogleSignIn() {
     setMessage("");
@@ -69,17 +79,21 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
 
     try {
-      if (mode === "magic") {
+      if (effectiveMode === "magic") {
         const { error } = await supabase.auth.signInWithOtp({
           email,
-          options: { emailRedirectTo: redirectTo },
+          options: { emailRedirectTo: redirectTo, shouldCreateUser: signupEnabled },
         });
         if (error) throw error;
         setMessage("Revisa tu email. El enlace te traerá de vuelta a Empuje.");
         return;
       }
 
-      if (mode === "signup") {
+      if (effectiveMode === "signup") {
+        if (!signupEnabled) {
+          setMessage("La beta de producción es por invitación. Entra con el email invitado.");
+          return;
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -120,9 +134,15 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
         <button className={`tab ${mode === "signin" ? "active" : ""}`} type="button" onClick={() => setMode("signin")}>
           Entrar
         </button>
-        <button className={`tab ${mode === "signup" ? "active" : ""}`} type="button" onClick={() => setMode("signup")}>
-          Crear cuenta
-        </button>
+        {signupEnabled ? (
+          <button
+            className={`tab ${mode === "signup" ? "active" : ""}`}
+            type="button"
+            onClick={() => setMode("signup")}
+          >
+            Crear cuenta
+          </button>
+        ) : null}
         <button className={`tab ${mode === "magic" ? "active" : ""}`} type="button" onClick={() => setMode("magic")}>
           Enlace mágico
         </button>
@@ -152,7 +172,7 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
             onChange={(event) => setEmail(event.target.value)}
           />
         </div>
-        {mode !== "magic" ? (
+        {effectiveMode !== "magic" ? (
           <div className="field">
             <label htmlFor="password">Contraseña</label>
             <input
@@ -160,7 +180,7 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
               name="password"
               type="password"
               minLength={8}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              autoComplete={effectiveMode === "signup" ? "new-password" : "current-password"}
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -168,10 +188,16 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
           </div>
         ) : null}
         <button className="button full" disabled={busy || !configured} type="submit">
-          {mode === "signup" ? <UserPlus size={17} aria-hidden="true" /> : null}
-          {mode === "magic" ? <Mail size={17} aria-hidden="true" /> : null}
-          {mode === "signin" ? <KeyRound size={17} aria-hidden="true" /> : null}
-          {busy ? "Procesando..." : mode === "signup" ? "Crear cuenta" : mode === "magic" ? "Enviar enlace" : "Entrar"}
+          {effectiveMode === "signup" ? <UserPlus size={17} aria-hidden="true" /> : null}
+          {effectiveMode === "magic" ? <Mail size={17} aria-hidden="true" /> : null}
+          {effectiveMode === "signin" ? <KeyRound size={17} aria-hidden="true" /> : null}
+          {busy
+            ? "Procesando..."
+            : effectiveMode === "signup"
+              ? "Crear cuenta"
+              : effectiveMode === "magic"
+                ? "Enviar enlace"
+                : "Entrar"}
         </button>
       </form>
 

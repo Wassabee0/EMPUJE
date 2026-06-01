@@ -10,8 +10,9 @@ type FormattedExport = {
 
 function csvCell(value: unknown) {
   const text = Array.isArray(value) ? value.join("|") : String(value ?? "");
-  if (!/[",\n]/.test(text)) return text;
-  return `"${text.replaceAll('"', '""')}"`;
+  const neutralized = /^[\s]*[=+\-@]/.test(text) || /^[\t\r]/.test(text) ? `'${text}` : text;
+  if (!/[",\n\r]/.test(neutralized) && neutralized === text) return text;
+  return `"${neutralized.replaceAll('"', '""')}"`;
 }
 
 function offerBusinessName(offer: OfferRecord, data: AdminExportData) {

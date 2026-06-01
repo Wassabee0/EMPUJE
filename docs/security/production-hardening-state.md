@@ -1,0 +1,261 @@
+# Production Hardening State
+
+Last updated: 2026-06-01
+
+## Objective
+
+Fix production-blocking security findings from:
+
+- `/tmp/codex-security-scans/Empuje/1419b14_20260530T203944Z/report.md`
+- `/tmp/codex-security-scans/Empuje/1419b14_20260530T203944Z/report.html`
+
+This file is the durable checkpoint for agent handoff and context compaction. Update it after each completed task group.
+
+## Current Phase
+
+All four task groups complete. Code verification passed; production launch remains blocked on external dashboard/legal readiness steps listed below.
+
+## Completed
+
+- [x] Legacy server disabled or removed from production path.
+- [x] CSV formula injection fixed.
+- [x] Evidence RLS ownership policy fixed.
+- [x] Auth abuse controls implemented or explicitly configured.
+- [x] Onboarding idempotency and quotas implemented.
+- [x] Production configuration checklist completed.
+- [x] Privacy/legal readiness checklist drafted.
+- [x] Full verification passed.
+
+## Decisions Needed
+
+- CAPTCHA/bot challenge provider: configure Supabase Auth CAPTCHA in dashboard; Cloudflare Turnstile preferred, hCaptcha acceptable.
+- Rate-limit storage/backend: Supabase Auth dashboard rate limits for auth endpoints; app-side server action quotas for onboarding storage.
+- Beta access model: invite-only in production. `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`; Supabase `Before User Created` hook `app_private.require_beta_invite(event jsonb)` must be enabled before external traffic.
+- Evidence upload quotas: 1 onboarding offer, 1 onboarding need, 8 evidence links, 5 evidence files, 20 MB total uploaded bytes per user, 10 MB per file at the Storage bucket.
+- Disposable email policy: not separately implemented; invite-only email allowlist is the production gate.
+- Production deployment target: Vercel, per README and production checklist.
+- Supabase project/environment names: still needs owner confirmation before dashboard verification.
+
+## Security Findings To Fix
+
+1. Conditional high: legacy `server.js` static PIN export can expose beta data if deployed.
+2. Medium: public Google OAuth, signup, and magic-link flows lack an app-owned hosted-abuse gate.
+3. Medium: repeated onboarding can amplify records, files, and admin workload.
+4. Medium: admin CSV export can carry member-controlled spreadsheet formulas.
+5. Medium: `evidence_items` RLS lets a member attach pending evidence to another member's offer if they know the offer UUID.
+
+## Suggested Task Groups
+
+### Task Group 1: Hard Blockers
+
+- Disable or remove the legacy `server.js` production path.
+- Fix CSV formula neutralization in `lib/export.ts`.
+- Fix `evidence_items` RLS ownership policy.
+- Add focused tests for each fix.
+
+### Task Group 2: Hosted Abuse Controls
+
+- Decide beta access model.
+- Add app-side rate limiting for auth-adjacent server-owned flows where applicable.
+- Configure Supabase Auth CAPTCHA/rate-limit controls in production.
+- Add onboarding idempotency.
+- Add per-user quotas for offers, needs, evidence links, file count, and uploaded bytes.
+
+### Task Group 3: Production Configuration Audit
+
+- Review Supabase Auth signup, CAPTCHA, email confirmation, OAuth, redirect, and rate-limit settings.
+- Review Supabase Storage bucket privacy, MIME limits, object size limits, and policies.
+- Review Vercel environment variables and deployment commands.
+- Confirm `server.js` is not deployed or reachable.
+- Confirm admin creation process is manual and audited.
+- Add logging/alerts for signup spikes, magic-link spikes, onboarding spikes, upload spikes, and admin exports.
+
+### Task Group 4: Privacy And Incident Readiness
+
+- Draft production privacy checklist.
+- Draft terms/acceptable-use checklist prohibiting phishing, spam, impersonation, malware, and abusive uploads.
+- Draft data retention and deletion notes.
+- Draft incident-response checklist, including AEPD/GDPR breach triage.
+- Add abuse contact and internal escalation notes.
+
+## Files Changed
+
+- `docs/security/production-hardening-state.md`: durable hardening checkpoint.
+- `package.json`: removed `serve:legacy`.
+- `server.js`: added explicit local-only startup gate for the legacy prototype server, refuses production/Vercel, removes query-string admin PIN support, and binds only to `127.0.0.1`.
+- `README.md`: documented the legacy prototype as local-only and production-disabled.
+- `lib/export.ts`: neutralizes formula-like CSV cells before delimiter quoting.
+- `supabase/migrations/20260526163000_initial_empuje_beta.sql`: tightened `evidence_items` insert RLS for fresh databases.
+- `supabase/migrations/20260601074955_fix_evidence_items_offer_ownership.sql`: reapplies tightened `evidence_items` insert RLS for already-migrated databases.
+- `tests/domain/export.test.ts`: added CSV formula and carriage-return coverage.
+- `tests/domain/legacy-server.test.ts`: added npm-script removal, explicit local-mode, production/Vercel refusal, header-only PIN, and query-string PIN rejection coverage.
+- `tests/server-collection.spec.js`: opts into local legacy mode for the historical Playwright legacy fixture.
+- `tests/domain/supabase-rls.test.ts`: added static RLS policy coverage.
+- `.env.example`: documented production beta access mode.
+- `components/auth-form.tsx`: hides public signup when production beta access is invite-only and prevents magic links from creating users in that mode.
+- `lib/onboarding.ts`: validates HTTP(S) evidence links and rejects over-quota link submissions instead of truncating silently.
+- `lib/onboarding-quotas.ts`: centralizes onboarding quota constants, URL normalization, dedupe, and write planning.
+- `lib/repository.ts`: makes onboarding writes idempotent for the primary offer/need, dedupes evidence links and files, hashes files, stores evidence byte metadata, and enforces quotas before service-role writes.
+- `lib/types.ts`: adds evidence metadata fields.
+- `supabase/migrations/20260601075345_beta_access_onboarding_quotas.sql`: adds private beta invites, invite-only Auth hook function, onboarding idempotency keys, evidence metadata columns, uniqueness indexes, and revokes direct member mutations for offer/need/evidence tables.
+- `tests/domain/beta-access-migration.test.ts`: verifies invite hook and quota migration controls.
+- `tests/domain/onboarding-quotas.test.ts`: verifies quota planning, dedupe, file count, and byte limits.
+- `tests/domain/onboarding.test.ts`: verifies evidence URL validation and link quota rejection.
+- `app/actions.ts`: emits structured security events for onboarding validation failures, quota/save failures, and successful submissions.
+- `app/api/admin/export/route.ts`: emits structured security events for admin exports.
+- `lib/security-events.ts`: centralizes redacted structured security event logging.
+- `tests/domain/security-events.test.ts`: verifies security events omit sensitive metadata such as raw email.
+- `docs/security/production-configuration-checklist.md`: production checklist for Supabase Auth, Storage, Vercel, admin creation, and logging/alerting.
+- `docs/security/privacy-incident-readiness-checklist.md`: privacy/legal, acceptable-use, retention, and incident-response readiness checklist with legal-review flags.
+- `docs/security/staging-verification-runbook.md`: exact staging verification commands and dashboard checks to run once Supabase/Vercel access exists.
+
+## Pending Tasks
+
+External production blockers remain:
+
+- Enable and verify Supabase Auth `Before User Created` hook `app_private.require_beta_invite(event jsonb)`.
+- Seed and test production `app_private.beta_invites` with invited and non-invited emails.
+- Enable and verify Supabase CAPTCHA provider and Auth rate limits.
+- Confirm Google OAuth stays disabled until invite-hook behavior is tested for OAuth-created users.
+- Confirm Supabase Storage bucket settings and policies in the production project.
+- Configure Vercel production env vars, log routing, and alerts.
+- Complete legal review and publication of privacy notice, acceptable-use policy, retention policy, and incident process.
+
+External verification attempt, 2026-06-01:
+
+- `npm run test:e2e` was rerun after stopping the conflicting local Next dev server. Result: PASS, 12 Playwright tests.
+- Supabase CLI is available through `npx supabase --version` as `2.103.0`.
+- Supabase CLI is now logged in and linked to project ref `ifphiqzvslsxnqkatton` (`eneritzges@gmail.com's Project`, West Europe/London, created 2026-06-01 09:49:28 UTC).
+- `npx supabase migration list --linked` shows all six local migrations have no remote migration entries yet.
+- `npx supabase db push --linked --include-all --dry-run` succeeded and would apply all six local migrations, but no remote schema changes were applied because explicit confirmation is needed before changing the linked database.
+- User confirmed `ifphiqzvslsxnqkatton` is staging and approved migration application.
+- `npx supabase db push --linked --include-all` was attempted, but the Supabase pooler rejected the CLI temporary login role with repeated authentication failures and then `ECIRCUITBREAKER`; the stuck push process was killed to avoid further retries. No migration success output was observed.
+- A read-only storage bucket query returned no `evidence` bucket yet.
+- A read-only schema query confirmed `auth`, `public`, and `storage` schemas exist before migrations; `app_private` was not present before migration application.
+- One parallel read-only table inventory query hit Supabase pooler temporary-role authentication retries and an `ECIRCUITBREAKER` after repeated failed auth; the stuck CLI process was killed. Avoid parallel `db query --linked` calls against this project.
+- `npx supabase status` remains blocked because Docker is not installed/running in this environment.
+- No Supabase MCP tools were available through tool discovery. Staging/dashboard verification now needs owner confirmation to apply migrations to the linked project, then dashboard actions for Auth hook/CAPTCHA/rate limits.
+- Next required owner action: provide the staging Postgres password locally via `SUPABASE_DB_PASSWORD` or run the push locally with `--password`, or wait for the pooler circuit breaker to clear and retry once.
+
+Task Group 1 notes:
+
+- `git status --short` was run before edits. Pre-existing unrelated local changes were present in `next-env.d.ts`, `docs/security/`, and `prototypes/*`; they were not reverted.
+- Legacy path decision: keep `server.js` for local historical prototype compatibility, but remove npm exposure, require `LEGACY_SERVER_MODE=local`, refuse production and Vercel-like environments, bind only to `127.0.0.1`, and accept admin PINs only through `x-admin-pin`.
+- CSV decision: preserve original text, prefix dangerous cells with an apostrophe, and quote formula-like cells. This covers `=`, `+`, `-`, `@`, leading tab/carriage return, and whitespace before formula triggers.
+- RLS decision: allow nullable `offer_id` evidence rows to preserve the schema contract, but require any referenced offer to belong to the authenticated user.
+- Runtime proof gap: no local Supabase project is available yet, so the RLS fix currently has static SQL coverage only. Run a two-user Supabase RLS test once a local or remote test project is available.
+
+Task Group 2 notes:
+
+- Beta access decision: production is invite-only. Signup UI is hidden when `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`, and magic links use `shouldCreateUser: false` in that mode.
+- Supabase Auth gate: migration `20260601075345_beta_access_onboarding_quotas.sql` creates `app_private.beta_invites` and `app_private.require_beta_invite(event jsonb)` for the `Before User Created` hook. Dashboard activation is still an external production step.
+- Direct DML bypass decision: the same migration revokes `insert`, `update`, and `delete` on `offers`, `needs`, and `evidence_items` from `authenticated` so onboarding writes go through the service-role server action and its quotas.
+- Onboarding idempotency decision: each user has one primary onboarding offer and one primary onboarding need. Re-running onboarding updates those rows instead of appending new rows.
+- Quota decision: 1 offer, 1 need, 8 evidence links, 5 evidence files, 20 MB total uploaded bytes, and 10 MB per file via Storage bucket settings.
+- Runtime proof gap: Supabase Auth dashboard settings, the Auth hook activation, and Auth rate/CAPTCHA enforcement still need dashboard verification in the production project.
+
+Task Group 3 notes:
+
+- Production configuration checklist lives at `docs/security/production-configuration-checklist.md`.
+- Supabase Auth checklist covers invite hook activation, invited-email seeding, email confirmation, CAPTCHA, rate limits, IP forwarding, OAuth gating, and redirect URLs.
+- Supabase Storage checklist covers private `evidence` bucket, 10 MB object limit, allowed MIME types, storage RLS, and no public previews/fetching without a separate review.
+- Vercel checklist covers env vars, `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`, no `DEV_ADMIN_ACCESS_CODE`, and confirming the Next.js production path rather than `server.js`.
+- Admin process remains manual SQL promotion with an audit note; no user metadata is used for admin authorization.
+- Logging decision: app-owned security events are structured JSON through Vercel logs. External alerts still need to be configured in the chosen log sink and Supabase dashboard.
+
+Task Group 4 notes:
+
+- Privacy and incident checklist lives at `docs/security/privacy-incident-readiness-checklist.md`.
+- It is explicitly not legal advice and marks privacy notice, lawful basis, processor/DPA, acceptable-use, retention, deletion, GDPR/AEPD, and notification decisions for legal review.
+- Acceptable-use checklist prohibits phishing, spam, impersonation, malware, abusive automation, unauthorized third-party data, deceptive links, and abusive uploads.
+- Retention draft for legal review: 90 days for rejected/abandoned applications and rejected evidence, active account plus 180 days for active member evidence, 180 days for security logs, and 7 days for local admin exports.
+- Incident response checklist includes triage, evidence preservation, secret rotation, provider/route disablement, abusive evidence removal, account suspension, notification assessment, and post-incident review.
+
+## Verification Commands
+
+Run after each task group where applicable:
+
+```bash
+npm run lint
+npm test
+npm run build
+npm audit --omit=dev --audit-level=moderate
+```
+
+For RLS changes, also run a Supabase-backed two-user policy test if a local or remote test project is available.
+
+Latest focused verification, 2026-06-01:
+
+```bash
+npx vitest run tests/domain/export.test.ts
+# PASS: 1 file, 4 tests.
+
+npx vitest run tests/domain/legacy-server.test.ts
+# PASS: 1 file, 7 tests.
+
+npx vitest run tests/domain/supabase-rls.test.ts
+# PASS: 1 file, 2 tests.
+
+npx vitest run tests/domain/export.test.ts tests/domain/legacy-server.test.ts tests/domain/supabase-rls.test.ts tests/domain/beta-access-migration.test.ts tests/domain/onboarding.test.ts tests/domain/onboarding-quotas.test.ts tests/domain/security-events.test.ts
+# PASS: 7 files, 27 tests.
+
+npx vitest run tests/domain/beta-access-migration.test.ts tests/domain/onboarding.test.ts tests/domain/onboarding-quotas.test.ts
+# PASS: 3 files, 13 tests.
+
+npm run lint
+# PASS: tsc --noEmit.
+
+npx vitest run tests/domain/security-events.test.ts
+# PASS: 1 file, 1 test.
+
+npm run lint
+# PASS after Task Group 3 logging changes: tsc --noEmit.
+
+npx playwright test -c tests tests/server-collection.spec.js
+# PASS: 2 tests. Note: this historical legacy Playwright fixture is outside the configured `tests/e2e` directory, so it was run with `-c tests`.
+
+Full verification, 2026-06-01:
+
+npm run lint
+# PASS: tsc --noEmit.
+
+npm test
+# PASS: 20 files, 65 tests.
+
+npm run build
+# PASS: Next.js production build compiled, type-checked, and generated static pages.
+
+npm audit --omit=dev --audit-level=moderate
+# PASS: found 0 vulnerabilities.
+
+npm run test:e2e
+# PASS after stopping the conflicting local Next dev server: 12 Playwright tests.
+
+npx supabase --version
+# PASS: 2.103.0.
+
+npx supabase status
+# BLOCKED: cannot connect to Docker daemon; Docker is not installed/running in this environment.
+
+npx supabase projects list
+# PASS: linked project ref ifphiqzvslsxnqkatton visible.
+
+npx supabase migration list --linked
+# PASS: connected to remote; all six local migrations are not yet applied remotely.
+
+npx supabase db push --linked --include-all --dry-run
+# PASS: dry run only; would apply all six local migrations.
+
+npx supabase db push --linked --include-all
+# BLOCKED: Supabase pooler temporary CLI role authentication failed repeatedly and hit ECIRCUITBREAKER. Push process was killed; no migrations were confirmed applied.
+```
+
+## Context Compaction Guardrail
+
+If context compacts, read this file first, then read:
+
+1. `/tmp/codex-security-scans/Empuje/1419b14_20260530T203944Z/report.md`
+2. `git status --short`
+3. Any latest test output recorded in this file
+
+Continue from `Pending Tasks`. Do not restart from scratch. Do not revert user changes. Do not modify production behavior without updating this state file and running the relevant verification commands.

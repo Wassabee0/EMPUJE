@@ -3,6 +3,15 @@ const http = require('http');
 const path = require('path');
 const { URL } = require('url');
 
+if (
+  process.env.NODE_ENV === 'production' ||
+  process.env.VERCEL ||
+  process.env.LEGACY_SERVER_MODE !== 'local'
+) {
+  console.error('server.js is a disabled legacy prototype. Set LEGACY_SERVER_MODE=local for local-only review.');
+  process.exit(1);
+}
+
 const rootDir = __dirname;
 const port = Number(process.env.PORT || 4173);
 const adminPin = (process.env.ADMIN_PIN || '').trim();
@@ -214,8 +223,7 @@ function applicationToRecords(input) {
 
 function hasAdminPin(request) {
   if (!adminPin) return false;
-  const url = new URL(request.url, `http://${request.headers.host}`);
-  return request.headers['x-admin-pin'] === adminPin || url.searchParams.get('pin') === adminPin;
+  return request.headers['x-admin-pin'] === adminPin;
 }
 
 function serveStatic(request, response, url) {
@@ -296,7 +304,7 @@ const server = http.createServer(async (request, response) => {
   serveStatic(request, response, url);
 });
 
-server.listen(port, '0.0.0.0', () => {
+server.listen(port, '127.0.0.1', () => {
   ensureDataFile();
   console.log(`Empuje beta server running at http://127.0.0.1:${port}/preview.html`);
 });

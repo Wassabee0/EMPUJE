@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { contributionCategoryForTemplate, getContributionTemplate } from "./contribution-templates";
+import {
+  ONBOARDING_QUOTAS,
+  normalizeUniqueEvidenceLinks,
+} from "./onboarding-quotas";
 import type { BusinessStage, BusinessType, ParsedOnboardingInput } from "./types";
 
 const businessTypes = ["local", "brand", "service", "community", "other"] as const;
@@ -64,8 +68,7 @@ function splitLinks(value: string) {
   return value
     .split(/[\n,]+/)
     .map((link) => link.trim())
-    .filter(Boolean)
-    .slice(0, 8);
+    .filter(Boolean);
 }
 
 function parsePositiveInteger(value: string) {
@@ -93,6 +96,8 @@ export function parseOnboardingInput(input: Record<string, unknown>):
   const requestedTemplateId = String(input.contributionTemplateId ?? "").trim();
   const template = getContributionTemplate(requestedTemplateId);
   const capacityTotal = parsePositiveInteger(String(input.capacityTotal ?? "").trim());
+  const evidenceLinkInput = splitLinks(String(input.evidenceLinks ?? ""));
+  const evidenceLinks = normalizeUniqueEvidenceLinks(evidenceLinkInput);
 
   if (!parsed.success) {
     issues.push(...parsed.error.issues.map((issue) => issue.path.join(".") || issue.message));
@@ -101,6 +106,8 @@ export function parseOnboardingInput(input: Record<string, unknown>):
   if (needTags.length === 0) issues.push("needTags");
   if (requestedTemplateId && !template) issues.push("contributionTemplateId");
   if (String(input.capacityTotal ?? "").trim() && capacityTotal === null) issues.push("capacityTotal");
+  if (evidenceLinks.invalid.length) issues.push("evidenceLinks");
+  if (evidenceLinks.links.length > ONBOARDING_QUOTAS.evidenceLinks) issues.push("evidenceLinks");
 
   if (issues.length || !parsed.success) {
     return { success: false, error: Array.from(new Set(issues)).join(", ") };
@@ -135,7 +142,7 @@ export function parseOnboardingInput(input: Record<string, unknown>):
         description: clean(parsed.data.needDescription),
         tags: needTags,
       },
-      evidenceLinks: splitLinks(parsed.data.evidenceLinks),
+      evidenceLinks: evidenceLinks.links,
     },
   };
 }

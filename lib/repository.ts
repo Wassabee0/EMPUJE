@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { createHash } from "node:crypto";
 
 import { canRequestIntroForMatch } from "@/lib/authorization";
 import { buildInternalCreditLedger } from "@/lib/credit-ledger";
@@ -6,6 +7,11 @@ import { formatAdminExport } from "@/lib/export";
 import { candidateToDatabaseRow, mapMaterializedCandidate } from "@/lib/match-candidates";
 import { generateCandidateMatches } from "@/lib/matching";
 import { buildMatchWorkbench } from "@/lib/match-workbench";
+import {
+  planOnboardingWrite,
+  type ExistingOnboardingUsage,
+} from "@/lib/onboarding-quotas";
+import { buildOpportunityWorkbench, generateOpportunityCandidates } from "@/lib/opportunities";
 import { buildVerificationReviews } from "@/lib/verification";
 import type {
   AdminData,
@@ -122,7 +128,10 @@ function mapEvidence(row: Row): EvidenceItemRecord {
     label: asString(row.label),
     kind: asString(row.kind, "link") as EvidenceItemRecord["kind"],
     url: asString(row.url, "") || null,
+    normalizedUrl: asString(row.normalized_url, "") || null,
     storagePath: asString(row.storage_path, "") || null,
+    contentHash: asString(row.content_hash, "") || null,
+    byteSize: asNumber(row.byte_size),
     status: asString(row.status, "pending") as EvidenceStatus,
     adminNotes: asString(row.admin_notes, "") || null,
     createdAt: asString(row.created_at),
@@ -383,6 +392,52 @@ export async function getAdminExportData(): Promise<AdminExportData> {
   };
 }
 
+function nextProfileStatus(existingStatus: string) {
+  return existingStatus === "active" || existingStatus === "rejected" ? existingStatus : "pending_review";
+}
+
+async function hashEvidenceFile(file: File) {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return createHash("sha256").update(buffer).digest("hex");
+}
+
+async function getOnboardingUsage(client: SupabaseClient, profileId: string): Promise<ExistingOnboardingUsage> {
+  const [offersResult, needsResult, evidenceResult] = await Promise.all([
+    client
+      .from("offers")
+      .select("id")
+      .eq("profile_id", profileId)
+      .order("created_at", { ascending: true }),
+    client
+      .from("needs")
+      .select("id")
+      .eq("profile_id", profileId)
+      .order("created_at", { ascending: true }),
+    client
+      .from("evidence_items")
+      .select("kind,url,normalized_url,byte_size,content_hash")
+      .eq("profile_id", profileId),
+  ]);
+
+  const firstError = offersResult.error || needsResult.error || evidenceResult.error;
+  if (firstError) throw firstError;
+
+  const evidenceRows = (evidenceResult.data ?? []) as Row[];
+  const fileRows = evidenceRows.filter((row) => asString(row.kind) === "file");
+
+  return {
+    offerIds: ((offersResult.data ?? []) as Row[]).map((row) => asString(row.id)).filter(Boolean),
+    needIds: ((needsResult.data ?? []) as Row[]).map((row) => asString(row.id)).filter(Boolean),
+    evidenceLinks: evidenceRows
+      .filter((row) => asString(row.kind) === "link")
+      .map((row) => asString(row.normalized_url) || asString(row.url))
+      .filter(Boolean),
+    evidenceFileCount: fileRows.length,
+    uploadedBytes: fileRows.reduce((total, row) => total + Math.max(0, asNumber(row.byte_size)), 0),
+    fileHashes: fileRows.map((row) => asString(row.content_hash)).filter(Boolean),
+  };
+}
+
 export async function saveOnboarding(
   user: { id: string; email?: string | null },
   parsed: ParsedOnboardingInput,
@@ -390,6 +445,25 @@ export async function saveOnboarding(
 ) {
   const client = requireAdminClient();
   const now = new Date().toISOString();
+  const nonEmptyFiles = files.filter((item) => item.size > 0);
+  const incomingFiles = await Promise.all(
+    nonEmptyFiles.map(async (file) => ({
+      file,
+      size: file.size,
+      hash: await hashEvidenceFile(file),
+    })),
+  );
+  const [existingProfileResult, usage] = await Promise.all([
+    client.from("profiles").select("status").eq("id", user.id).maybeSingle(),
+    getOnboardingUsage(client, user.id),
+  ]);
+  if (existingProfileResult.error) throw existingProfileResult.error;
+
+  const plan = planOnboardingWrite(usage, {
+    evidenceLinks: parsed.evidenceLinks,
+    files: incomingFiles,
+  });
+  if (!plan.ok) throw new Error(plan.error);
 
   const { error: profileError } = await client.from("profiles").upsert({
     id: user.id,
@@ -399,60 +473,71 @@ export async function saveOnboarding(
     city: parsed.profile.city,
     business_type: parsed.profile.businessType,
     stage: parsed.profile.stage,
-    status: "pending_review",
+    status: nextProfileStatus(asString((existingProfileResult.data as Row | null)?.status)),
     consent_accepted: true,
     consent_at: now,
     updated_at: now,
   });
   if (profileError) throw profileError;
 
-  const { data: offerData, error: offerError } = await client
-    .from("offers")
-    .insert({
-      profile_id: user.id,
-      title: parsed.offer.title,
-      description: parsed.offer.description,
-      tags: parsed.offer.tags,
-      status: "pending",
-      contribution_template_id: parsed.offer.contributionTemplateId,
-      contribution_category: parsed.offer.contributionCategory,
-      availability_status: parsed.offer.availabilityStatus,
-      capacity_total: parsed.offer.capacityTotal,
-      capacity_used: 0,
-      capacity_unit: parsed.offer.capacityUnit,
-      available_from: parsed.offer.availableFrom,
-      available_until: parsed.offer.availableUntil,
-      next_review_at: parsed.offer.availableUntil,
-      restrictions: parsed.offer.restrictions,
-    })
-    .select("id")
-    .single();
+  const offerPayload = {
+    profile_id: user.id,
+    onboarding_key: "primary",
+    title: parsed.offer.title,
+    description: parsed.offer.description,
+    tags: parsed.offer.tags,
+    status: "pending",
+    contribution_template_id: parsed.offer.contributionTemplateId,
+    contribution_category: parsed.offer.contributionCategory,
+    availability_status: parsed.offer.availabilityStatus,
+    capacity_total: parsed.offer.capacityTotal,
+    capacity_used: 0,
+    capacity_unit: parsed.offer.capacityUnit,
+    available_from: parsed.offer.availableFrom,
+    available_until: parsed.offer.availableUntil,
+    next_review_at: parsed.offer.availableUntil,
+    restrictions: parsed.offer.restrictions,
+    updated_at: now,
+  };
+  const offerQuery = plan.primaryOfferId
+    ? client.from("offers").update(offerPayload).eq("id", plan.primaryOfferId).select("id").single()
+    : client.from("offers").insert(offerPayload).select("id").single();
+  const { data: offerData, error: offerError } = await offerQuery;
   if (offerError) throw offerError;
 
   const offerId = asString((offerData as Row).id);
-  const { error: needError } = await client.from("needs").insert({
+  const needPayload = {
     profile_id: user.id,
+    onboarding_key: "primary",
     title: parsed.need.title,
     description: parsed.need.description,
     tags: parsed.need.tags,
-  });
+    updated_at: now,
+  };
+  const needQuery = plan.primaryNeedId
+    ? client.from("needs").update(needPayload).eq("id", plan.primaryNeedId)
+    : client.from("needs").insert(needPayload);
+  const { error: needError } = await needQuery;
   if (needError) throw needError;
 
-  if (parsed.evidenceLinks.length) {
+  if (plan.evidenceLinksToInsert.length) {
     const { error } = await client.from("evidence_items").insert(
-      parsed.evidenceLinks.map((link) => ({
+      plan.evidenceLinksToInsert.map((link) => ({
         profile_id: user.id,
         offer_id: offerId,
         label: link,
         kind: "link",
         url: link,
+        normalized_url: link,
+        byte_size: 0,
         status: "pending",
       })),
     );
     if (error) throw error;
   }
 
-  for (const file of files.filter((item) => item.size > 0)) {
+  for (const item of plan.filesToInsert) {
+    const file = item.file;
     const safeName = file.name.replace(/[^a-zA-Z0-9_.-]+/g, "-").slice(0, 120);
     const storagePath = `${user.id}/${crypto.randomUUID()}-${safeName}`;
     const { error: uploadError } = await client.storage.from("evidence").upload(storagePath, file, {
@@ -467,6 +552,8 @@ export async function saveOnboarding(
       label: file.name,
       kind: "file",
       storage_path: storagePath,
+      content_hash: item.hash,
+      byte_size: item.size,
       status: "pending",
     });
     if (evidenceError) throw evidenceError;

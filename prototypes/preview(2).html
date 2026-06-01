@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empuje · Prototipo Kanban</title>
+  <style>
+    :root{
+      --page:#9a9aa3;
+      --navy:#222d3f;
+      --navy-2:#2f3a4f;
+      --navy-3:#1a2230;
+      --text:#f6f4f3;
+      --muted:#cad1de;
+      --white:#ffffff;
+      --surface:#f6f6f8;
+      --surface-2:#eceef3;
+      --surface-3:#e2e6ef;
+      --ink:#1c2430;
+      --ink-soft:#6b7280;
+      --accent:#5a43df;
+      --accent-2:#7d6af5;
+      --peach:#ef9f96;
+      --green:#b4d36f;
+      --yellow:#f1c96b;
+      --line:#e5e7ef;
+      --shadow:0 24px 70px rgba(17,22,34,.28);
+      --shadow-soft:0 12px 28px rgba(25,32,46,.10);
+      --radius-xl:34px;
+      --radius-lg:24px;
+      --radius-md:18px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:var(--page);
+      color:var(--ink);
+    }
+
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+
+    .page{
+      width:min(1380px, calc(100vw - 32px));
+      margin:34px auto;
+    }
+
+    .shell{
+      border:4px solid rgba(255,255,255,.92);
+      border-radius:36px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+      background:var(--surface);
+    }
+
+    .hero{
+      background:radial-gradient(circle at 78% 18%, rgba(255,255,255,.08), transparent 18%), linear-gradient(160deg,var(--navy),var(--navy-2));
+      color:var(--text);
+      padding:18px 20px 0;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .topbar{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:18px;
+      align-items:center;
+      padding:4px 6px 10px;
+    }
+
+    .logo-box{
+      width:42px;height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.28);
+      display:grid;place-items:center;color:#fff;font-size:9px;font-weight:800;line-height:1.05;text-align:center;
+    }
+
+    .nav{
+      display:flex;justify-content:center;gap:18px;flex-wrap:wrap;
+    }
+
+    .nav button{
+      background:none;border:0;color:rgba(255,255,255,.74);font-size:13px;font-weight:700;padding:10px 2px;position:relative;
+    }
+
+    .nav button.active,.nav button:hover{color:#fff}
+    .nav button.active::after{
+      content:"";position:absolute;left:0;right:0;bottom:2px;height:2px;background:#ff8d7b;border-radius:999px;
+    }
+
+    .auth{display:flex;gap:10px;align-items:center}
+    .ghost,.solid,.tab-pill,.mini-btn,.filter,.chip{
+      border-radius:999px;transition:.18s ease;
+    }
+
+    .ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.18);padding:10px 14px;font-weight:700}
+    .solid{background:#fff;color:var(--navy);border:0;padding:10px 16px;font-weight:800}
+    .ghost:hover,.solid:hover,.mini-btn:hover{transform:translateY(-1px)}
+
+    .hero-grid{
+      display:grid;grid-template-columns:1.02fr .98fr;gap:18px;align-items:end;
+      min-height:370px;padding:20px 6px 0;
+    }
+
+    .hero-copy{padding:26px 10px 30px 12px;position:relative;z-index:2}
+
+    .badge-top{
+      display:inline-flex;align-items:center;gap:10px;
+      padding:10px 18px;border-radius:16px;background:linear-gradient(90deg,#5637dc,#7860f5);
+      box-shadow:0 12px 28px rgba(76,54,200,.34);margin-bottom:18px;font-weight:800;
+    }
+    .badge-pin{width:18px;height:18px;background:linear-gradient(145deg,#f6f7fb,#d2d9e5);border-radius:12px 12px 12px 3px;transform:rotate(35deg);position:relative}
+    .badge-pin::after{content:"";position:absolute;right:-2px;top:-3px;width:10px;height:10px;border-radius:50%;background:#f18a22;transform:rotate(-35deg)}
+
+    h1,h2,h3,h4,p{margin-top:0}
+    h1{font-size:clamp(42px,5.5vw,70px);line-height:.95;letter-spacing:-.06em;margin:0 0 14px;max-width:560px}
+    .hero-copy p{max-width:580px;color:rgba(255,255,255,.8);line-height:1.6;font-size:15px;margin-bottom:26px}
+
+    .hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+    .tab-pill{
+      border:0;padding:14px 18px;font-weight:800;letter-spacing:-.02em;
+      background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.12)
+    }
+    .tab-pill.primary{background:#fff;color:var(--navy)}
+    .tab-pill.active{background:#fff;color:var(--navy);box-shadow:0 12px 20px rgba(15,20,30,.18)}
+
+    .hero-visual{position:relative;min-height:330px;padding-right:8px}
+    .visual-stage{
+      position:absolute;inset:10px 0 0 50px;border-radius:30px;
+      background:linear-gradient(135deg,#232d40 0%,#34445c 40%,#141c28 100%);
+      overflow:hidden;
+    }
+    .visual-stage::before{
+      content:"";position:absolute;right:46px;bottom:-35px;width:220px;height:380px;background:linear-gradient(180deg,#6c819f,#273548 45%,#121925);clip-path:polygon(45% 0,100% 0,84% 100%,0 100%);opacity:.96;
+      filter:drop-shadow(-22px 8px 16px rgba(0,0,0,.2));
+    }
+    .visual-stage::after{
+      content:"";position:absolute;left:90px;bottom:-18px;width:130px;height:250px;background:linear-gradient(180deg,#586b87,#1c2637 58%,#101824);clip-path:polygon(28% 0,100% 0,72% 100%,0 100%);opacity:.75;
+    }
+
+    .floating-card{
+      position:absolute;background:#3b4659;color:#fff;border-radius:24px;padding:16px 18px;box-shadow:var(--shadow-soft);
+    }
+    .floating-card.peach{background:var(--peach)}
+    .floating-card.purple{background:rgba(93,70,225,.18);border:1px solid rgba(255,255,255,.08)}
+    .floating-card h3{margin:8px 0 6px;font-size:30px;line-height:1;letter-spacing:-.04em}
+    .floating-card p{margin:0;color:rgba(255,255,255,.76);font-size:13px;line-height:1.45}
+    .pill-mini{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.16);font-size:12px;font-weight:800}
+    .pill-dot{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:var(--green);color:#1e2633;font-size:11px;font-weight:900}
+    .fc-1{top:26px;right:60px;width:180px}
+    .fc-2{top:108px;right:90px;width:230px}
+    .fc-3{top:154px;left:18px;width:120px;min-height:150px;display:flex;align-items:flex-end;font-weight:800;color:rgba(255,255,255,.36)}
+    .fc-4{top:112px;right:-6px;width:140px;opacity:.74}
+
+    .body-zone{
+      background:var(--surface);
+      position:relative;
+      padding:24px 22px 24px;
+    }
+    .body-zone::before{
+      content:"";position:absolute;left:33%;top:-34px;width:150px;height:68px;background:var(--surface);border-radius:0 0 24px 24px;
+    }
+
+    .summary-row{
+      display:grid;grid-template-columns:1.2fr 1fr;gap:18px;align-items:center;margin-bottom:22px;
+    }
+    .highlight-card,.metric-strip{background:#fff;border-radius:20px;box-shadow:var(--shadow-soft);padding:14px 16px}
+    .highlight-card{display:flex;gap:14px;align-items:center}
+    .highlight-thumb{width:66px;height:66px;border-radius:16px;background:linear-gradient(145deg,#6a49f0,#8d7bff);display:grid;place-items:center;color:#fff;font-size:24px;font-weight:900}
+    .highlight-card small{display:block;color:#8b94a6;font-weight:700;margin-bottom:4px}
+    .highlight-card h4{margin:0 0 4px;font-size:17px;letter-spacing:-.02em}
+    .highlight-card p{margin:0;color:#6d7585;font-size:14px;line-height:1.45}
+    .metric-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .metric{
+      background:#f8f9fc;border-radius:16px;padding:14px 12px;text-align:left;
+    }
+    .metric small{display:block;color:#8690a2;font-weight:700;margin-bottom:4px}
+    .metric strong{display:block;color:#202938;font-size:22px;letter-spacing:-.03em}
+
+    .toolbar{
+      display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap;
+      margin:6px 0 18px;
+    }
+    .toolbar h2{margin:0;font-size:30px;letter-spacing:-.04em;color:#1d2635}
+    .toolbar p{margin:6px 0 0;color:#747d8f}
+    .toolbar-right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .filter{
+      border:1px solid #dae0eb;background:#fff;color:#344054;padding:10px 14px;font-weight:800
+    }
+    .filter.active{background:#293548;color:#fff;border-color:#293548}
+    .mini-btn{background:#eef2f8;border:0;color:#233040;padding:11px 14px;font-weight:800}
+
+    .board-view{display:none}
+    .board-view.active{display:block}
+
+    .kanban{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(260px,1fr));
+      gap:14px;
+      overflow:auto;
+      padding-bottom:8px;
+    }
+
+    .column{
+      min-width:260px;
+      background:#edf0f5;
+      border-radius:24px;
+      padding:12px;
+      border:1px solid #e2e6ef;
+      display:flex;
+      flex-direction:column;
+      min-height:560px;
+    }
+
+    .col-head{
+      display:flex;justify-content:space-between;gap:10px;align-items:center;
+      padding:6px 4px 12px;
+    }
+    .col-title{display:flex;align-items:center;gap:10px}
+    .col-title h3{margin:0;font-size:17px;letter-spacing:-.02em;color:#1f2937}
+    .col-count{padding:7px 10px;border-radius:999px;background:#fff;font-size:12px;font-weight:800;color:#475467;box-shadow:0 6px 16px rgba(20,26,38,.06)}
+    .col-dot{width:10px;height:10px;border-radius:50%}
+    .dropzone{
+      display:flex;flex-direction:column;gap:12px;flex:1;
+      min-height:420px;
+    }
+    .dropzone.drag-over{outline:2px dashed #8a79ff;outline-offset:4px;border-radius:18px}
+
+    .card{
+      background:#fff;border-radius:20px;padding:14px 14px 12px;
+      box-shadow:0 10px 24px rgba(28,35,49,.08);
+      border:1px solid #eef1f6;
+      cursor:grab;
+    }
+    .card:active{cursor:grabbing}
+    .card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:800}
+    .tag.city{background:#eef2ff;color:#4f46e5}
+    .tag.score{background:#fff5d9;color:#9d6804}
+    .tag.type{background:#eefaf1;color:#1f7c4e}
+    .tag.status{background:#f3f4f7;color:#667085}
+    .card h4{margin:0 0 6px;font-size:18px;letter-spacing:-.03em;color:#1e2634}
+    .card p{margin:0;color:#707889;font-size:13px;line-height:1.45}
+    .card-list{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+    .card-list li{background:#f7f8fb;border-radius:14px;padding:10px 12px;font-size:13px;color:#384152}
+    .progress{
+      height:8px;border-radius:999px;background:#edf0f5;overflow:hidden;margin-top:10px;
+    }
+    .progress span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+
+    .card-actions{
+      display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;
+    }
+    .btn-card{border:0;border-radius:12px;padding:10px 12px;font-size:12px;font-weight:800}
+    .btn-primary{background:#293548;color:#fff}
+    .btn-soft{background:#eef2f8;color:#243041}
+    .btn-good{background:#ebf8ef;color:#1d7a45}
+    .btn-danger{background:#fff0f0;color:#bc3f3f}
+
+    .legend{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 0}
+    .legend span{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#667085;font-weight:700}
+    .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+    .drawer{
+      position:fixed;top:0;right:-440px;width:min(440px,100vw);height:100vh;background:#fff;box-shadow:-18px 0 40px rgba(18,23,33,.18);
+      z-index:50;transition:.22s ease;display:flex;flex-direction:column;
+    }
+    .drawer.open{right:0}
+    .drawer-head{padding:20px 20px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .drawer-close{border:0;background:#eef2f7;border-radius:12px;width:40px;height:40px;font-size:18px;font-weight:900}
+    .drawer-body{padding:18px 20px 24px;overflow:auto;display:grid;gap:16px}
+    .drawer-box{background:#f8f9fc;border-radius:18px;padding:14px}
+    .drawer-box h5{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#7d8698}
+    .drawer-box p,.drawer-box li{margin:0;color:#404a5a;line-height:1.5;font-size:14px}
+    .drawer-box ul{margin:0;padding-left:18px;display:grid;gap:8px}
+
+    .toast{
+      position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120%);
+      background:#293548;color:#fff;padding:14px 18px;border-radius:999px;font-weight:800;box-shadow:0 14px 30px rgba(17,22,34,.24);transition:.22s ease;z-index:60;
+    }
+    .toast.show{transform:translateX(-50%) translateY(0)}
+
+    @media (max-width:1180px){
+      .hero-grid,.summary-row{grid-template-columns:1fr}
+      .metric-strip{grid-template-columns:repeat(2,1fr)}
+      .hero-visual{min-height:300px}
+    }
+    @media (max-width:760px){
+      .page{width:min(100vw - 14px, 1380px);margin:14px auto}
+      .shell{border-width:3px;border-radius:24px}
+      .topbar{grid-template-columns:1fr;justify-items:start}
+      .nav{justify-content:flex-start}
+      .hero{padding:14px 14px 0}
+      .hero-grid{min-height:auto}
+      .hero-copy{padding:16px 6px 24px}
+      .hero-visual{min-height:240px}
+      .visual-stage{left:12px}
+      .fc-1{right:20px}.fc-2{right:38px}.fc-4{display:none}.fc-3{display:none}
+      .body-zone::before{left:24px;width:110px}
+      .metric-strip{grid-template-columns:1fr 1fr}
+      .kanban{grid-template-columns:1fr}
+      .column{min-width:auto}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <section class="hero">
+        <div class="topbar">
+          <div class="logo-box">Em<br/>puje</div>
+          <nav class="nav">
+            <button class="active">Home</button>
+            <button>Boards</button>
+            <button>Members</button>
+            <button>Matches</button>
+            <button>Rules</button>
+          </nav>
+          <div class="auth">
+            <button class="ghost">Log In</button>
+            <button class="solid">Sign Up</button>
+          </div>
+        </div>
+
+        <div class="hero-grid">
+          <div class="hero-copy">
+            <div class="badge-top"><span class="badge-pin"></span> Empuje Kanban Workspace</div>
+            <h1>Organiza tu red<br/>de crecimiento<br/>como un sistema</h1>
+            <p>Nuevo prototipo visual para Empuje, inspirado en la referencia pero llevado a un producto kanban. Incluye dos tableros: uno para el usuario y otro para el admin, con ofertas, verificación, matches, capacidad y acuerdos.</p>
+            <div class="hero-actions">
+              <button class="tab-pill primary active" data-board="user">Panel usuario</button>
+              <button class="tab-pill" data-board="admin">Panel admin</button>
+              <button class="tab-pill" id="showToast">Vista premium demo</button>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div class="visual-stage"></div>
+            <div class="floating-card peach fc-1">
+              <div class="pill-mini">Beta lista</div>
+              <h3>Kanban operativo</h3>
+              <p>Dos vistas distintas, misma estética y una estructura mucho más accionable.</p>
+            </div>
+            <div class="floating-card fc-2">
+              <div class="pill-mini"><span class="pill-dot">✓</span> Visual + producto</div>
+              <h3>Matches que avanzan</h3>
+              <p>Los recursos se mueven entre columnas según capacidad, evidencia, riesgo y estado real del acuerdo.</p>
+            </div>
+            <div class="floating-card purple fc-3"><div>score<br><span style="font-size:42px;color:#fff">91</span></div></div>
+            <div class="floating-card fc-4">
+              <div class="pill-mini"><span class="pill-dot">◎</span> Trust</div>
+              <h3 style="font-size:28px">Reputación</h3>
+              <p>Verificado, parcial, pendiente o pausado.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="body-zone">
+        <div class="summary-row">
+          <div class="highlight-card">
+            <div class="highlight-thumb">FG</div>
+            <div>
+              <small>Cuenta destacada · FightGear Semilla</small>
+              <h4>Validando venta de material de deportes de contacto</h4>
+              <p>Tiene 3 matches útiles, 1 verificación pendiente y 2 recursos con capacidad parcial. Ideal para ver cómo Empuje ayuda a proyectos en fase semilla.</p>
+            </div>
+          </div>
+          <div class="metric-strip">
+            <div class="metric"><small>Perfiles beta</small><strong>36</strong></div>
+            <div class="metric"><small>Matches activos</small><strong>18</strong></div>
+            <div class="metric"><small>Triángulos detectados</small><strong>7</strong></div>
+            <div class="metric"><small>Valor estimado</small><strong>4.2k€</strong></div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div>
+            <h2 id="boardTitle">Panel usuario · tablero de trabajo</h2>
+            <p id="boardSubtitle">Vista para cada miembro: qué puede ofrecer, qué matches tiene y qué acuerdos están avanzando.</p>
+            <div class="legend">
+              <span><i style="background:#b4d36f"></i> Verificado</span>
+              <span><i style="background:#f1c96b"></i> Parcial / capacidad limitada</span>
+              <span><i style="background:#ef9f96"></i> Riesgo o pendiente</span>
+              <span><i style="background:#7d6af5"></i> Match premium / alto encaje</span>
+            </div>
+          </div>
+          <div class="toolbar-right">
+            <button class="filter active">Todo</button>
+            <button class="filter">Madrid</button>
+            <button class="filter">Barcelona</button>
+            <button class="filter">Valencia</button>
+            <button class="mini-btn">Exportar</button>
+          </div>
+        </div>
+
+        <section class="board-view active" id="userBoard">
+          <div class="kanban">
+            <section class="column" data-col="ofertas">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#6c4cff"></span><h3>Ofertas activas</h3></div>
+                <span class="col-count">3</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="FightGear · Packs básicos" data-subtitle="Oferta activa · Valencia" data-detail="FightGear puede ofrecer 8 packs básicos de iniciación y 2 muestras para review. Necesita controlar bien la capacidad para no sobreprometer." data-next="Mantener stock actualizado y limitar a 1 campaña de comisión activa por vez.">
+                  <div class="tags">
+                    <span class="tag city">Valencia</span>
+                    <span class="tag type">Proyecto semilla</span>
+                    <span class="tag status">Capacidad parcial</span>
+                  </div>
+                  <div class="card-top">
+                    <div>
+                      <h4>FightGear · Packs básicos</h4>
+                      <p>Producto piloto para principiantes en deportes de contacto.</p>
+                    </div>
+                  </div>
+                  <ul class="card-list">
+                    <li>Oferta: 8 packs de iniciación</li>
+                    <li>Extra: 2 muestras para review</li>
+                    <li>Reputación: 68 / 100</li>
+                  </ul>
+                  <div class="progress"><span style="width:56%"></span></div>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Editar oferta</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Cafetería Bruma · Local tardes" data-subtitle="Oferta verificada · Madrid" data-detail="Bruma tiene 2 tardes por semana disponibles para pop-ups o sesiones. El local ya está verificado y se puede reservar por franjas." data-next="Reservar 1 tarde para Marta FotoProducto y bloquear otra para un posible triángulo con Lúa.">
+                  <div class="tags">
+                    <span class="tag city">Madrid</span>
+                    <span class="tag type">Local físico</span>
+                    <span class="tag status">Verificado</span>
+                  </div>
+                  <h4>Cafetería Bruma · Local tardes</h4>
+                  <p>Espacio disponible martes y miércoles por la tarde.</p>
+                  <ul class="card-list">
+                    <li>Oferta: 2 franjas / semana</li>
+                    <li>Valor: visibilidad + café + local</li>
+                    <li>Trust: 89 / 100</li>
+                  </ul>
+                  <div class="progress"><span style="width:80%"></span></div>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Pausar</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Brava Newsletter · Difusión" data-subtitle="Oferta limitada · Valencia" data-detail="Brava puede dar visibilidad editorial a historias locales, pero solo acepta 2 campañas al mes para mantener calidad." data-next="Asignar una campaña a FightGear si entrega historia y fotos listas esta semana.">
+                  <div class="tags">
+                    <span class="tag city">Valencia</span>
+                    <span class="tag type">Media local</span>
+                    <span class="tag status">Limitada</span>
+                  </div>
+                  <h4>Brava Newsletter · Difusión</h4>
+                  <p>Newsletter local con hueco para historias de producto y experiencias.</p>
+                  <ul class="card-list">
+                    <li>Oferta: 2 huecos / mes</li>
+                    <li>Audiencia: 4.000 lectoras</li>
+                    <li>Reputación: 84 / 100</li>
+                  </ul>
+                  <div class="progress"><span style="width:44%"></span></div>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Actualizar capacidad</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="column" data-col="matches">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#7d6af5"></span><h3>Matches sugeridos</h3></div>
+                <span class="col-count">4</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="FightGear + Marta FotoProducto" data-subtitle="Match directo · Score 92" data-detail="Match muy claro: FightGear necesita fotos reales de catálogo y Marta necesita producto y caso de uso. Se puede ejecutar en menos de 7 días." data-next="Enviar intro y acordar sesión piloto de 90 minutos con 12 assets finales.">
+                  <div class="tags">
+                    <span class="tag score">Score 92</span>
+                    <span class="tag type">Directo</span>
+                  </div>
+                  <h4>FightGear + Marta FotoProducto</h4>
+                  <p>Fotos de producto a cambio de portfolio, testimonial y material real.</p>
+                  <ul class="card-list">
+                    <li>Ganancia FightGear: contenido + confianza</li>
+                    <li>Ganancia Marta: caso real + portfolio</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-good">Aceptar intro</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Bruma + Lúa + Marta" data-subtitle="Triángulo · Score 88" data-detail="Triángulo muy fuerte: Bruma cede espacio, Lúa activa un pop-up con producto y Marta crea contenido para ambas. Todos reciben valor claro." data-next="Bloquear 1 tarde en Bruma, confirmar stock de Lúa y mandar propuesta unificada.">
+                  <div class="tags">
+                    <span class="tag score">Score 88</span>
+                    <span class="tag type">Triangular</span>
+                  </div>
+                  <h4>Bruma + Lúa + Marta</h4>
+                  <p>Espacio, producto y contenido circulan entre tres nodos.</p>
+                  <ul class="card-list">
+                    <li>Bruma recibe evento + público + contenido</li>
+                    <li>Lúa valida producto y vende</li>
+                    <li>Marta consigue portfolio</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Marcar interés</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="FightGear + Brava + Rueda Cargo" data-subtitle="Triángulo semilla · Score 84" data-detail="Oportunidad muy útil para un proyecto semilla: FightGear crea la oferta, Brava la cuenta y Rueda Cargo resuelve una entrega local rápida." data-next="Pedir evidencia de stock a FightGear y rango de reparto a Rueda antes de activar.">
+                  <div class="tags">
+                    <span class="tag score">Score 84</span>
+                    <span class="tag type">Triangular</span>
+                  </div>
+                  <h4>FightGear + Brava + Rueda</h4>
+                  <p>Historia, difusión y entrega local para dar el primer empuje.</p>
+                  <ul class="card-list">
+                    <li>Objetivo: primeras ventas reales</li>
+                    <li>Riesgo: depende de stock y tiempos</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Guardar</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="column" data-col="review">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#ef9f96"></span><h3>En conversación</h3></div>
+                <span class="col-count">2</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="La Semilla + Brava" data-subtitle="Evento en revisión · Score 86" data-detail="La Semilla quiere un evento sostenible y Brava necesita historias locales. Falta cerrar fecha y formato editorial." data-next="Definir fecha, formato y número de marcas invitadas.">
+                  <div class="tags">
+                    <span class="tag score">Score 86</span>
+                    <span class="tag type">Directo</span>
+                    <span class="tag status">Falta fecha</span>
+                  </div>
+                  <h4>La Semilla + Brava</h4>
+                  <p>Evento pequeño con cobertura y difusión.</p>
+                  <ul class="card-list">
+                    <li>Bloqueo: agenda y enfoque editorial</li>
+                    <li>Siguiente paso: llamada de 20 min</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Recordatorio</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="FightGear · evidencia pendiente" data-subtitle="Verificación de oferta" data-detail="El usuario dice tener muestras para review, pero falta evidencia visual y precio final. Sin eso no conviene activar según el estándar de Empuje." data-next="Subir 3 fotos del producto, lista de tallas y condiciones de entrega.">
+                  <div class="tags">
+                    <span class="tag status">Pendiente</span>
+                    <span class="tag type">Verificación</span>
+                  </div>
+                  <h4>FightGear · evidencia pendiente</h4>
+                  <p>Sin prueba de stock ni condiciones no se debería abrir a todos los matches.</p>
+                  <ul class="card-list">
+                    <li>Falta: fotos y disponibilidad</li>
+                    <li>Impacto: bloquea 1 triángulo</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-danger">Pausar match</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="column" data-col="active">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#b4d36f"></span><h3>Acuerdos activos</h3></div>
+                <span class="col-count">2</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="Bruma + Marta · Sesión piloto" data-subtitle="Activo · ejecutándose" data-detail="Sesión de fotos ya aprobada. Bruma cede el local el miércoles y Marta entrega 12 assets editados en 72 horas." data-next="Esperar entrega, pedir valoración mutua y medir si Bruma sube visitas o engagement.">
+                  <div class="tags">
+                    <span class="tag status">Activo</span>
+                    <span class="tag type">Directo</span>
+                  </div>
+                  <h4>Bruma + Marta · Sesión piloto</h4>
+                  <p>Acuerdo simple y muy repetible, ideal para la beta.</p>
+                  <ul class="card-list">
+                    <li>Fecha: miércoles 18:30</li>
+                    <li>Entrega: 12 fotos + 4 stories</li>
+                    <li>Valor estimado: 180€</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-good">Marcar completado</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Panal + marca local" data-subtitle="Completado · feedback 4.8/5" data-detail="Panal entregó branding básico a cambio de testimonial y caso práctico. Ambas partes valoraron positivamente la colaboración." data-next="Usar como caso de éxito para captar más perfiles similares.">
+                  <div class="tags">
+                    <span class="tag status">Completado</span>
+                    <span class="tag type">Caso de éxito</span>
+                  </div>
+                  <h4>Panal + marca local</h4>
+                  <p>Ejemplo de acuerdo cerrado con alta satisfacción.</p>
+                  <ul class="card-list">
+                    <li>Valoración media: 4.8 / 5</li>
+                    <li>Prueba de valor: testimonial publicado</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Ver feedback</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="board-view" id="adminBoard">
+          <div class="kanban">
+            <section class="column" data-col="new-users">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#6c4cff"></span><h3>Nuevos perfiles</h3></div>
+                <span class="col-count">4</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="FightGear Semilla · onboarding" data-subtitle="Nuevo perfil · 82% completado" data-detail="Proyecto semilla de material para deportes de contacto. Tiene buena claridad de necesidad, pero faltan evidencias y condiciones." data-next="Revisar onboarding, pedir stock, etiquetar necesidades y marcar 3 matches iniciales.">
+                  <div class="tags">
+                    <span class="tag city">Valencia</span>
+                    <span class="tag type">Semilla</span>
+                    <span class="tag status">82% completo</span>
+                  </div>
+                  <h4>FightGear Semilla · onboarding</h4>
+                  <p>Quiere conseguir clientes fuera de amigos y familiares.</p>
+                  <ul class="card-list">
+                    <li>Necesita: validación, fotos, canales</li>
+                    <li>Puede ofrecer: producto piloto + comisión</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Etiquetar</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Nuevo estudio de pilates" data-subtitle="Nuevo perfil · Madrid" data-detail="Perfil interesante para eventos compartidos, wellness y colaboraciones con locales. Falta definir qué puede ofrecer más allá del espacio de clases." data-next="Pedir que concrete horarios, aforo y tipo de colaboraciones aceptadas.">
+                  <div class="tags">
+                    <span class="tag city">Madrid</span>
+                    <span class="tag type">Bienestar</span>
+                  </div>
+                  <h4>Nuevo estudio de pilates</h4>
+                  <p>Potencial para grupo wellness o eventos de barrio.</p>
+                  <ul class="card-list">
+                    <li>Ofrece: sesiones y sala</li>
+                    <li>Necesita: captación y visibilidad</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Solicitar datos</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="column" data-col="verify">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#ef9f96"></span><h3>Verificación</h3></div>
+                <span class="col-count">3</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="FightGear · revisar stock" data-subtitle="Evidencia pendiente" data-detail="Antes de activar sus matches, necesitamos verificar que el producto existe, que hay stock y que el usuario puede servirlo." data-next="Pedir fotos del producto, unidades disponibles, lista de precios y tiempos de entrega.">
+                  <div class="tags">
+                    <span class="tag status">Pendiente</span>
+                    <span class="tag type">Oferta</span>
+                  </div>
+                  <h4>FightGear · revisar stock</h4>
+                  <p>Sin pruebas de stock el radar pierde fiabilidad.</p>
+                  <ul class="card-list">
+                    <li>Falta: fotos + cantidades + precios</li>
+                    <li>Impacto: desbloquea 2 matches</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-good">Aprobar</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Lúa Cosmética · stock parcial" data-subtitle="Capacidad limitada" data-detail="El perfil es bueno, pero no puede sostener demasiados eventos a la vez. Hay que marcar muy claramente su capacidad real." data-next="Reducir a 1 activación/semana y marcar como parcial.">
+                  <div class="tags">
+                    <span class="tag status">Parcial</span>
+                    <span class="tag type">Capacidad</span>
+                  </div>
+                  <h4>Lúa Cosmética · stock parcial</h4>
+                  <p>Conviene limitar sugerencias para evitar sobrecarga.</p>
+                  <ul class="card-list">
+                    <li>Riesgo: sobreprometer producto</li>
+                    <li>Acción: actualizar capacidad</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Pedir stock</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="column" data-col="candidates">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#7d6af5"></span><h3>Matches candidatos</h3></div>
+                <span class="col-count">5</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="FightGear + Marta" data-subtitle="Candidato premium · Score 92" data-detail="Uno de los matches más fáciles de activar de toda la beta: casi sin riesgo y con retorno claro para ambos." data-next="Aprobar intro directamente y medir tiempo hasta ejecución.">
+                  <div class="tags">
+                    <span class="tag score">92</span>
+                    <span class="tag type">Directo</span>
+                  </div>
+                  <h4>FightGear + Marta</h4>
+                  <p>Un match casi ideal para dar el empuje inicial al proyecto.</p>
+                  <ul class="card-list">
+                    <li>Desbloquea: confianza + assets</li>
+                    <li>Tiempo estimado: 7 días</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-good">Aprobar intro</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Bruma + Lúa + Marta" data-subtitle="Triángulo premium · Score 88" data-detail="Triángulo muy representativo del producto Empuje. Circulación de valor limpia, buena historia y alta visibilidad como caso de uso." data-next="Comprobar hueco del local y fijar fecha tentativa.">
+                  <div class="tags">
+                    <span class="tag score">88</span>
+                    <span class="tag type">Triángulo</span>
+                  </div>
+                  <h4>Bruma + Lúa + Marta</h4>
+                  <p>Caso muy fuerte para enseñar el valor de la plataforma.</p>
+                  <ul class="card-list">
+                    <li>Ideal para caso de éxito público</li>
+                    <li>Necesita coordinación manual</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Editar propuesta</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Grupo wellness de barrio" data-subtitle="Grupo · Score 81" data-detail="Bruma, Nido Yoga, Lúa y Marta pueden hacer un pequeño evento local. Buen formato para activar comunidad y contenido." data-next="Enviar propuesta de evento con máximo 20 asistentes y reparto de roles.">
+                  <div class="tags">
+                    <span class="tag score">81</span>
+                    <span class="tag type">Grupo</span>
+                  </div>
+                  <h4>Grupo wellness de barrio</h4>
+                  <p>Oportunidad grupal con visibilidad y valor compartido.</p>
+                  <ul class="card-list">
+                    <li>Objetivo: captación + contenido</li>
+                    <li>Riesgo: coordinación</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Mover a aprobadas</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section class="column" data-col="approved">
+              <div class="col-head">
+                <div class="col-title"><span class="col-dot" style="background:#b4d36f"></span><h3>Aprobados / seguimiento</h3></div>
+                <span class="col-count">3</span>
+              </div>
+              <div class="dropzone">
+                <article class="card" draggable="true" data-title="Bruma + Marta · seguimiento" data-subtitle="Aprobado · en ejecución" data-detail="La intro ya se envió y hay fecha cerrada. El siguiente punto es seguimiento de entrega y valoración." data-next="Mandar recordatorio 24h antes, pedir valoración mutua y registrar outcome.">
+                  <div class="tags">
+                    <span class="tag status">En ejecución</span>
+                    <span class="tag type">Seguimiento</span>
+                  </div>
+                  <h4>Bruma + Marta · seguimiento</h4>
+                  <p>Un acuerdo beta ya operando con resultados medibles.</p>
+                  <ul class="card-list">
+                    <li>Fecha cerrada</li>
+                    <li>Valor estimado 180€</li>
+                    <li>Esperando feedback</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-good">Cerrar acuerdo</button>
+                  </div>
+                </article>
+
+                <article class="card" draggable="true" data-title="Panal + marca local · caso de éxito" data-subtitle="Cerrado · 4.8/5" data-detail="Acuerdo ya completado. Muy útil como prueba de que la red genera valor real y repetible." data-next="Destacarlo en onboarding y como evidencia de monetización futura.">
+                  <div class="tags">
+                    <span class="tag status">Completado</span>
+                    <span class="tag type">Caso</span>
+                  </div>
+                  <h4>Panal + marca local · caso</h4>
+                  <p>Muy útil para confianza, captación y reputación de la red.</p>
+                  <ul class="card-list">
+                    <li>Testimonial publicado</li>
+                    <li>Fácil de enseñar a nuevos miembros</li>
+                  </ul>
+                  <div class="card-actions">
+                    <button class="btn-card btn-primary open-detail">Ver detalle</button>
+                    <button class="btn-card btn-soft">Usar en landing</button>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </div>
+  </div>
+
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div>
+        <h3 id="drawerTitle" style="margin:0">Detalle</h3>
+        <p id="drawerSubtitle" style="margin:6px 0 0;color:#667085"></p>
+      </div>
+      <button class="drawer-close" id="drawerClose">×</button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-box">
+        <h5>Resumen</h5>
+        <p id="drawerSummary">—</p>
+      </div>
+      <div class="drawer-box">
+        <h5>Siguiente paso</h5>
+        <p id="drawerNext">—</p>
+      </div>
+      <div class="drawer-box">
+        <h5>Qué conviene revisar</h5>
+        <ul>
+          <li>Capacidad real del recurso o servicio.</li>
+          <li>Evidencia o verificación de lo que se ofrece.</li>
+          <li>Reputación y nivel de respuesta del usuario.</li>
+          <li>Si el acuerdo es directo, triangular o grupal.</li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast">Demo: puedes arrastrar tarjetas entre columnas y abrir detalles.</div>
+
+  <script>
+    const boardButtons = document.querySelectorAll('[data-board]');
+    const boardTitle = document.getElementById('boardTitle');
+    const boardSubtitle = document.getElementById('boardSubtitle');
+    const userBoard = document.getElementById('userBoard');
+    const adminBoard = document.getElementById('adminBoard');
+
+    function activateBoard(target){
+      boardButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.board === target));
+      userBoard.classList.toggle('active', target === 'user');
+      adminBoard.classList.toggle('active', target === 'admin');
+
+      if(target === 'user'){
+        boardTitle.textContent = 'Panel usuario · tablero de trabajo';
+        boardSubtitle.textContent = 'Vista para cada miembro: qué puede ofrecer, qué matches tiene y qué acuerdos están avanzando.';
+      } else {
+        boardTitle.textContent = 'Panel admin · operaciones y curación';
+        boardSubtitle.textContent = 'Vista interna para verificar perfiles, revisar convergencias, aprobar matches y hacer seguimiento.';
+      }
+    }
+
+    boardButtons.forEach(btn => btn.addEventListener('click', () => activateBoard(btn.dataset.board)));
+
+    const drawer = document.getElementById('drawer');
+    const drawerTitle = document.getElementById('drawerTitle');
+    const drawerSubtitle = document.getElementById('drawerSubtitle');
+    const drawerSummary = document.getElementById('drawerSummary');
+    const drawerNext = document.getElementById('drawerNext');
+
+    document.querySelectorAll('.open-detail').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const card = e.target.closest('.card');
+        drawerTitle.textContent = card.dataset.title || 'Detalle';
+        drawerSubtitle.textContent = card.dataset.subtitle || '';
+        drawerSummary.textContent = card.dataset.detail || 'Sin resumen.';
+        drawerNext.textContent = card.dataset.next || 'Sin siguiente paso.';
+        drawer.classList.add('open');
+      });
+    });
+
+    document.getElementById('drawerClose').addEventListener('click', () => drawer.classList.remove('open'));
+    document.addEventListener('keydown', (e) => { if(e.key === 'Escape') drawer.classList.remove('open'); });
+
+    let draggedCard = null;
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('dragstart', () => {
+        draggedCard = card;
+        card.style.opacity = '.45';
+      });
+      card.addEventListener('dragend', () => {
+        card.style.opacity = '1';
+        draggedCard = null;
+        document.querySelectorAll('.dropzone').forEach(z => z.classList.remove('drag-over'));
+      });
+    });
+
+    document.querySelectorAll('.dropzone').forEach(zone => {
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('drag-over');
+      });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        if(draggedCard) zone.appendChild(draggedCard);
+      });
+    });
+
+    const toast = document.getElementById('toast');
+    document.getElementById('showToast').addEventListener('click', () => {
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2600);
+    });
+  </script>
+</body>
+</html>

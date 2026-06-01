@@ -62,4 +62,61 @@ describe("formatAdminExport", () => {
     expect(formatted.body).toContain("offer,o1,p1,,Panaderia Alba,pending,espacio,Obrador por las tardes");
     expect(formatted.body).not.toContain("demo");
   });
+
+  test("neutralizes spreadsheet formula prefixes in member-controlled CSV cells", () => {
+    const formatted = formatAdminExport(
+      {
+        ...exportData,
+        profiles: [
+          {
+            ...exportData.profiles[0],
+            businessName: '=HYPERLINK("https://evil.example","abrir")',
+          },
+        ],
+        offers: [
+          {
+            ...exportData.offers[0],
+            tags: ["@SUM(1,1)", "espacio"],
+            title: "+1+1",
+          },
+        ],
+        needs: [
+          {
+            id: "n1",
+            profileId: "p1",
+            title: "  -2+3",
+            description: "Necesito algo sencillo.",
+            tags: ["\t@IMPORTXML"],
+            createdAt: "2026-05-26T10:02:00.000Z",
+          },
+        ],
+      },
+      "csv",
+      new Date("2026-05-26T12:00:00.000Z"),
+    );
+
+    expect(formatted.body).toContain(`"'=HYPERLINK(""https://evil.example"",""abrir"")"`);
+    expect(formatted.body).toContain(`"'+1+1"`);
+    expect(formatted.body).toContain(`"'@SUM(1,1)|espacio"`);
+    expect(formatted.body).toContain(`"'  -2+3"`);
+    expect(formatted.body).toContain(`"'\t@IMPORTXML"`);
+  });
+
+  test("quotes carriage returns even when the cell is not a formula", () => {
+    const formatted = formatAdminExport(
+      {
+        ...exportData,
+        profiles: [
+          {
+            ...exportData.profiles[0],
+            businessName: "Linea\rPartida",
+          },
+        ],
+      },
+      "csv",
+      new Date("2026-05-26T12:00:00.000Z"),
+    );
+
+    expect(formatted.body).toContain('"Linea\rPartida"');
+  });
 });

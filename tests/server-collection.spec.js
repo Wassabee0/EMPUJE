@@ -31,6 +31,7 @@ test.beforeAll(async () => {
     cwd: path.resolve(__dirname, '..'),
     env: {
       ...process.env,
+      LEGACY_SERVER_MODE: 'local',
       PORT: String(port),
       ADMIN_PIN: '2468',
       DATA_DIR: dataDir

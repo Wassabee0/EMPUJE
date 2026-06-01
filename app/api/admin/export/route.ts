@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { exportAdminData, isAdminUser } from "@/lib/repository";
+import { logSecurityEvent } from "@/lib/security-events";
 import { getCurrentUser } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -16,6 +17,10 @@ export async function GET(request: NextRequest) {
 
   const format = request.nextUrl.searchParams.get("format") === "csv" ? "csv" : "json";
   const exported = await exportAdminData(format);
+  logSecurityEvent("admin_export", {
+    userId: user.id,
+    action: format,
+  });
 
   return new NextResponse(exported.body, {
     headers: {

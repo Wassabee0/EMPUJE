@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { hasEvidenceSubmission, parseOnboardingInput } from "@/lib/onboarding";
+import { logSecurityEvent } from "@/lib/security-events";
 import {
   createIntroRequest,
   createMatch,
@@ -63,16 +64,43 @@ function nullableString(value: FormDataEntryValue | null) {
 export async function submitOnboarding(formData: FormData) {
   const user = await requireUser();
   const parsed = parseOnboardingInput(formToRecord(formData));
+  const files = formData.getAll("evidenceFiles").filter((value): value is File => value instanceof File);
+  const uploadedBytes = files.reduce((total, file) => total + Math.max(0, file.size), 0);
 
   if (!parsed.success) {
+    logSecurityEvent("onboarding_rejected", {
+      userId: user.id,
+      action: "validation_failed",
+      metadata: { fileCount: files.length, uploadedBytes },
+    });
     throw new Error(`El onboarding está incompleto: ${parsed.error}`);
   }
 
-  const files = formData.getAll("evidenceFiles").filter((value): value is File => value instanceof File);
   if (!hasEvidenceSubmission(parsed.data.evidenceLinks, files.map((file) => file.size))) {
+    logSecurityEvent("onboarding_rejected", {
+      userId: user.id,
+      action: "missing_evidence",
+      metadata: { linkCount: parsed.data.evidenceLinks.length, fileCount: files.length, uploadedBytes },
+    });
     throw new Error("Añade al menos un enlace o archivo de evidencia para que la oferta pueda revisarse.");
   }
-  await saveOnboarding(user, parsed.data, files);
+
+  try {
+    await saveOnboarding(user, parsed.data, files);
+  } catch (error) {
+    logSecurityEvent("upload_quota_rejected", {
+      userId: user.id,
+      action: "save_onboarding_failed",
+      metadata: { linkCount: parsed.data.evidenceLinks.length, fileCount: files.length, uploadedBytes },
+    });
+    throw error;
+  }
+
+  logSecurityEvent("onboarding_submit", {
+    userId: user.id,
+    action: "saved",
+    metadata: { linkCount: parsed.data.evidenceLinks.length, fileCount: files.length, uploadedBytes },
+  });
   redirect("/dashboard");
 }
 

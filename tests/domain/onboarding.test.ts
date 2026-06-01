@@ -2,6 +2,27 @@ import { describe, expect, test } from "vitest";
 
 import { hasEvidenceSubmission, normalizeTags, parseOnboardingInput } from "../../lib/onboarding";
 
+const validInput = {
+  fullName: "Ana Ruiz",
+  businessName: "Panaderia Alba",
+  city: "Madrid",
+  businessType: "local",
+  stage: "first_sales",
+  contributionTemplateId: "space_quiet_hours",
+  offerTitle: "Obrador por las tardes",
+  offerDescription: "Puedo ceder una mesa de trabajo dos tardes al mes.",
+  offerTags: "espacio, alimentos",
+  capacityTotal: "2",
+  capacityUnit: "slots_per_month",
+  availableUntil: "2026-12-31",
+  restrictions: "Solo tardes entre semana y sin cocina caliente.",
+  needTitle: "Fotos y difusion local",
+  needDescription: "Necesito contenido para explicar el obrador.",
+  needTags: "contenido, audiencia",
+  evidenceLinks: "https://example.com/alba",
+  consentAccepted: "on",
+};
+
 describe("onboarding validation", () => {
   test("normalizes tags from comma, semicolon, and newline separated text", () => {
     expect(normalizeTags(" Local, Instagram; local\nContenido ")).toEqual([
@@ -12,26 +33,7 @@ describe("onboarding validation", () => {
   });
 
   test("requires concrete offer and need tags plus privacy consent", () => {
-    const result = parseOnboardingInput({
-      fullName: "Ana Ruiz",
-      businessName: "Panaderia Alba",
-      city: "Madrid",
-      businessType: "local",
-      stage: "first_sales",
-      contributionTemplateId: "space_quiet_hours",
-      offerTitle: "Obrador por las tardes",
-      offerDescription: "Puedo ceder una mesa de trabajo dos tardes al mes.",
-      offerTags: "espacio, alimentos",
-      capacityTotal: "2",
-      capacityUnit: "slots_per_month",
-      availableUntil: "2026-12-31",
-      restrictions: "Solo tardes entre semana y sin cocina caliente.",
-      needTitle: "Fotos y difusion local",
-      needDescription: "Necesito contenido para explicar el obrador.",
-      needTags: "contenido, audiencia",
-      evidenceLinks: "https://example.com/alba",
-      consentAccepted: "on",
-    });
+    const result = parseOnboardingInput(validInput);
 
     expect(result.success).toBe(true);
     if (!result.success) throw new Error(result.error);
@@ -71,5 +73,27 @@ describe("onboarding validation", () => {
     expect(hasEvidenceSubmission([], [])).toBe(false);
     expect(hasEvidenceSubmission(["https://example.com"], [])).toBe(true);
     expect(hasEvidenceSubmission([], [0, 342])).toBe(true);
+  });
+
+  test("rejects unsupported evidence URLs instead of storing opaque strings", () => {
+    const result = parseOnboardingInput({
+      ...validInput,
+      evidenceLinks: "javascript:alert(1)",
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error("Expected onboarding validation to fail");
+    expect(result.error).toContain("evidenceLinks");
+  });
+
+  test("rejects more than the per-user evidence link quota instead of truncating silently", () => {
+    const result = parseOnboardingInput({
+      ...validInput,
+      evidenceLinks: Array.from({ length: 9 }, (_, index) => `https://example.com/evidence-${index}`).join("\n"),
+    });
+
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error("Expected onboarding validation to fail");
+    expect(result.error).toContain("evidenceLinks");
   });
 });

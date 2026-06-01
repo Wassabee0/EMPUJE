@@ -100,7 +100,10 @@ export type EvidenceItemRecord = {
   label: string;
   kind: "link" | "file" | "note";
   url?: string | null;
+  normalizedUrl?: string | null;
   storagePath?: string | null;
+  contentHash?: string | null;
+  byteSize?: number;
   status: EvidenceStatus;
   adminNotes?: string | null;
   createdAt: string;
