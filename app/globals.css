@@ -486,6 +486,16 @@ h3 {
   resize: vertical;
 }
 
+.captcha-slot {
+  min-height: 70px;
+  display: grid;
+  align-items: center;
+}
+
+.captcha-slot iframe {
+  max-width: 100%;
+}
+
 .checkbox-row {
   display: flex;
   align-items: flex-start;

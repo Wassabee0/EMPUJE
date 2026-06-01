@@ -45,6 +45,8 @@ Confirm the staging project has all migrations through:
 - `20260601074955_fix_evidence_items_offer_ownership.sql`
 - `20260601075345_beta_access_onboarding_quotas.sql`
 - `20260601124314_revoke_authenticated_onboarding_table_ddl_privileges.sql`
+- `20260601134935_grant_auth_admin_usage_on_app_private.sql`
+- `20260601140636_public_invite_hook_wrapper.sql`
 
 Then verify the policy/function objects exist:
 
@@ -59,6 +61,11 @@ select routine_schema, routine_name, security_type
 from information_schema.routines
 where routine_schema = 'app_private'
   and routine_name = 'require_beta_invite';
+
+select n.nspname as schema,
+  has_schema_privilege('supabase_auth_admin', n.oid, 'USAGE') as auth_admin_has_usage
+from pg_namespace n
+where n.nspname = 'app_private';
 
 select table_name,
   has_table_privilege('authenticated', format('public.%I', table_name), 'SELECT') as can_select,
@@ -75,11 +82,13 @@ Expected:
 
 - `evidence_insert_own_pending` includes `profile_id = auth.uid()`, `status = 'pending'`, and an owned-offer `exists` check.
 - `app_private.require_beta_invite` exists as a `SECURITY DEFINER` function.
+- `public.require_beta_invite` exists as a dashboard-selectable wrapper and is executable by `supabase_auth_admin`.
+- `supabase_auth_admin` has `USAGE` on schema `app_private`; otherwise the Dashboard may not show `app_private.require_beta_invite` as a selectable Postgres hook.
 - For `offers`, `needs`, and `evidence_items`, `authenticated` has `can_select = true` and `can_insert/can_update/can_delete/can_truncate/can_references/can_trigger = false`.
 
 ## Auth Invite Hook Verification
 
-1. In Supabase Dashboard, set Auth Hook `Before User Created` to `app_private.require_beta_invite(event jsonb)`.
+1. In Supabase Dashboard, set Auth Hook `Before User Created` to schema `public`, function `require_beta_invite`.
 2. Insert one invited staging email:
 
 ```sql

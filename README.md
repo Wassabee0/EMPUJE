@@ -77,15 +77,20 @@ La migración `supabase/migrations/20260527090000_offer_capacity_and_contributio
 
 ### Acceso beta y controles antiabuso
 
-La producción debe lanzarse como beta por invitación. Define `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only` en Vercel para ocultar el alta pública y hacer que los enlaces mágicos no creen usuarios nuevos. Crea usuarios beta manualmente desde Supabase Auth o activa el hook `app_private.require_beta_invite(event jsonb)` incluido en la migración `20260601075345_beta_access_onboarding_quotas.sql` como Auth Hook `Before User Created`.
+La producción debe lanzarse como beta por invitación. Define `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only` en Vercel para ocultar el alta pública y hacer que los enlaces mágicos no creen usuarios nuevos. Crea usuarios beta manualmente desde Supabase Auth o activa el hook `public.require_beta_invite(event jsonb)` como Auth Hook `Before User Created`; esa función pública delega en el hook privado `app_private.require_beta_invite(event jsonb)`.
 
 Antes de abrir tráfico externo:
 
 1. En Supabase Auth, mantén email confirmation activado.
-2. En Auth → Hooks, configura `Before User Created` con la función Postgres `app_private.require_beta_invite`.
+2. En Auth → Hooks, configura `Before User Created` con la función Postgres `public.require_beta_invite`.
 3. En Auth → Bot and Abuse Protection, activa CAPTCHA con Cloudflare Turnstile o hCaptcha.
-4. En Auth → Rate Limits, revisa límites de OTP/magic-link, signup confirmation y email sends.
-5. Mantén Google OAuth desactivado hasta verificar que el hook bloquea usuarios no invitados creados por OAuth.
+4. En Vercel, añade el proveedor y la site key pública del CAPTCHA:
+   - `NEXT_PUBLIC_AUTH_CAPTCHA_PROVIDER=turnstile` o `hcaptcha`.
+   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` si usas Turnstile.
+   - `NEXT_PUBLIC_HCAPTCHA_SITE_KEY` si usas hCaptcha.
+5. Redespiega Vercel después de cambiar variables públicas.
+6. En Auth → Rate Limits, revisa límites de OTP/magic-link, signup confirmation y email sends.
+7. Mantén Google OAuth desactivado hasta verificar que el hook bloquea usuarios no invitados creados por OAuth.
 
 Cuotas actuales por usuario:
 
@@ -135,6 +140,8 @@ Después visita `/admin`.
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SECRET_KEY`
    - `NEXT_PUBLIC_SITE_URL`
+   - `NEXT_PUBLIC_AUTH_CAPTCHA_PROVIDER`
+   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` o `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`
    - `DEV_ADMIN_ACCESS_CODE` no es necesario en producción
 4. Pon `NEXT_PUBLIC_SITE_URL` con tu dominio de producción.
 5. Añade el callback de producción en Supabase Auth.

@@ -20,6 +20,33 @@ describe("beta access and onboarding quota migration", () => {
     expect(sql).toContain("revoke all on app_private.beta_invites from public, anon, authenticated");
   });
 
+  test("allows Supabase Auth to discover the private invite hook schema", () => {
+    const migrationsDir = path.join(rootDir, "supabase/migrations");
+    const combined = fs
+      .readdirSync(migrationsDir)
+      .filter((name) => name.endsWith(".sql"))
+      .sort()
+      .map((name) => readMigration(name))
+      .join("\n");
+
+    expect(combined).toContain("grant usage on schema app_private to supabase_auth_admin");
+  });
+
+  test("provides a public dashboard-selectable wrapper for the invite hook", () => {
+    const migrationsDir = path.join(rootDir, "supabase/migrations");
+    const combined = fs
+      .readdirSync(migrationsDir)
+      .filter((name) => name.endsWith(".sql"))
+      .sort()
+      .map((name) => readMigration(name))
+      .join("\n");
+
+    expect(combined).toContain("create or replace function public.require_beta_invite(event jsonb)");
+    expect(combined).toContain("select app_private.require_beta_invite(event)");
+    expect(combined).toContain("grant execute on function public.require_beta_invite(jsonb) to supabase_auth_admin");
+    expect(combined).toContain("revoke execute on function public.require_beta_invite(jsonb) from public, anon, authenticated");
+  });
+
   test("adds persistent keys and metadata needed for idempotency and quotas", () => {
     const sql = readMigration("20260601075345_beta_access_onboarding_quotas.sql");
 

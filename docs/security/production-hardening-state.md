@@ -28,9 +28,9 @@ All four task groups complete. Code verification and staging database verificati
 
 ## Decisions Needed
 
-- CAPTCHA/bot challenge provider: configure Supabase Auth CAPTCHA in dashboard; Cloudflare Turnstile preferred, hCaptcha acceptable.
+- CAPTCHA/bot challenge provider: configure Supabase Auth CAPTCHA in dashboard and set matching Vercel public CAPTCHA env vars; Cloudflare Turnstile preferred, hCaptcha acceptable.
 - Rate-limit storage/backend: Supabase Auth dashboard rate limits for auth endpoints; app-side server action quotas for onboarding storage.
-- Beta access model: invite-only in production. `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`; Supabase `Before User Created` hook `app_private.require_beta_invite(event jsonb)` must be enabled before external traffic.
+- Beta access model: invite-only in production. `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`; Supabase `Before User Created` hook `public.require_beta_invite(event jsonb)` must be enabled before external traffic.
 - Evidence upload quotas: 1 onboarding offer, 1 onboarding need, 8 evidence links, 5 evidence files, 20 MB total uploaded bytes per user, 10 MB per file at the Storage bucket.
 - Disposable email policy: not separately implemented; invite-only email allowlist is the production gate.
 - Production deployment target: Vercel, per README and production checklist.
@@ -92,13 +92,18 @@ All four task groups complete. Code verification and staging database verificati
 - `tests/server-collection.spec.js`: opts into local legacy mode for the historical Playwright legacy fixture.
 - `tests/domain/supabase-rls.test.ts`: added static RLS policy coverage.
 - `.env.example`: documented production beta access mode.
-- `components/auth-form.tsx`: hides public signup when production beta access is invite-only and prevents magic links from creating users in that mode.
+- `components/auth-form.tsx`: hides public signup when production beta access is invite-only, prevents magic links from creating users in that mode, and passes CAPTCHA tokens to Supabase email/password and OTP auth requests when CAPTCHA is configured.
+- `components/captcha-widget.tsx`: loads Cloudflare Turnstile or hCaptcha from public env configuration and returns provider tokens to the auth form.
+- `tests/domain/auth-captcha.test.ts`: verifies CAPTCHA token wiring and public CAPTCHA env documentation.
+- `app/globals.css`: reserves stable space for the CAPTCHA widget in auth forms.
 - `lib/onboarding.ts`: validates HTTP(S) evidence links and rejects over-quota link submissions instead of truncating silently.
 - `lib/onboarding-quotas.ts`: centralizes onboarding quota constants, URL normalization, dedupe, and write planning.
 - `lib/repository.ts`: makes onboarding writes idempotent for the primary offer/need, dedupes evidence links and files, hashes files, stores evidence byte metadata, and enforces quotas before service-role writes.
 - `lib/types.ts`: adds evidence metadata fields.
 - `supabase/migrations/20260601075345_beta_access_onboarding_quotas.sql`: adds private beta invites, invite-only Auth hook function, onboarding idempotency keys, evidence metadata columns, uniqueness indexes, and revokes direct member mutations for offer/need/evidence tables.
 - `supabase/migrations/20260601124314_revoke_authenticated_onboarding_table_ddl_privileges.sql`: revokes remaining `truncate`, `references`, and `trigger` privileges from `authenticated` on offer/need/evidence onboarding tables.
+- `supabase/migrations/20260601134935_grant_auth_admin_usage_on_app_private.sql`: grants `supabase_auth_admin` schema usage on `app_private` so the private invite hook is discoverable/configurable by Supabase Auth.
+- `supabase/migrations/20260601140636_public_invite_hook_wrapper.sql`: adds dashboard-selectable `public.require_beta_invite(event jsonb)` wrapper that delegates to the private invite hook and is executable only by Supabase Auth.
 - `tests/domain/beta-access-migration.test.ts`: verifies invite hook and quota migration controls.
 - `tests/domain/onboarding-quotas.test.ts`: verifies quota planning, dedupe, file count, and byte limits.
 - `tests/domain/onboarding.test.ts`: verifies evidence URL validation and link quota rejection.
@@ -114,12 +119,12 @@ All four task groups complete. Code verification and staging database verificati
 
 External production blockers remain:
 
-- Enable and verify Supabase Auth `Before User Created` hook `app_private.require_beta_invite(event jsonb)`.
+- Enable and verify Supabase Auth `Before User Created` hook `public.require_beta_invite(event jsonb)`.
 - Seed and test production `app_private.beta_invites` with invited and non-invited emails.
-- Enable and verify Supabase CAPTCHA provider and Auth rate limits.
+- Enable and verify Supabase CAPTCHA provider, set Vercel CAPTCHA public env vars, redeploy, and verify Auth rate limits.
 - Confirm Google OAuth stays disabled until invite-hook behavior is tested for OAuth-created users.
 - Confirm Supabase Storage bucket settings and policies in the production project.
-- Configure Vercel production env vars, log routing, and alerts.
+- Configure Vercel log routing and alerts.
 - Complete legal review and publication of privacy notice, acceptable-use policy, retention policy, and incident process.
 
 External verification, 2026-06-01:
@@ -130,10 +135,12 @@ External verification, 2026-06-01:
 - User confirmed `ifphiqzvslsxnqkatton` is staging and approved migration application.
 - User applied the first five migrations externally; a follow-up migration was created and applied from this session.
 - `npx supabase db push --linked` applied `20260601124314_revoke_authenticated_onboarding_table_ddl_privileges.sql`.
-- `npx supabase migration list --linked` now shows remote entries through `20260601124314`.
+- `npx supabase migration list --linked` now shows remote entries through `20260601140636`.
 - Remote privilege query confirms `authenticated` has `select=true` and `insert/update/delete/truncate/references/trigger=false` on `public.offers`, `public.needs`, and `public.evidence_items`.
 - Remote `app_private.require_beta_invite(event jsonb)` exists, is `SECURITY DEFINER`, returns `jsonb`, and has `search_path=app_private, public`.
 - Remote routine privileges for `app_private.require_beta_invite(jsonb)` are limited to `postgres` and `supabase_auth_admin`.
+- Remote schema privilege query confirms `supabase_auth_admin` has `USAGE` on `app_private`, needed for Auth hook selection/discovery.
+- Remote `public.require_beta_invite(event jsonb)` exists, is not `SECURITY DEFINER`, delegates to `app_private.require_beta_invite`, is executable by `supabase_auth_admin`, and is intended for the Supabase Dashboard hook selector under schema `public`.
 - Direct function proof: non-invited email returns `{"error":{"http_code":403,"message":"Empuje beta is invite-only."}}`; an invited email inserted inside a rolled-back transaction returns `{}`; rollback left zero staging verification invites behind.
 - Remote `evidence` Storage bucket exists, is private, has `file_size_limit=10485760`, and allows `image/png`, `image/jpeg`, `image/webp`, `application/pdf`, and `text/plain`.
 - Remote Storage policies `evidence_storage_insert_own_folder` and `evidence_storage_select_own_or_admin` are present and scope object paths to the first folder segment equal to `auth.uid()`, with admin read access.
@@ -143,6 +150,9 @@ External verification, 2026-06-01:
 - `npx supabase status` remains blocked because Docker is not installed/running in this environment.
 - No Supabase MCP tools were available through tool discovery.
 - Remaining staging dashboard checks: confirm the Auth hook is enabled in Dashboard, CAPTCHA/rate limits are configured, redirect URLs are constrained, and Google OAuth remains disabled until invited/non-invited OAuth signup is tested.
+- Vercel project `eneritzges-gmailcoms-projects/empuje` is linked locally and production env names are configured for `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SITE_URL`, and `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`. CAPTCHA public env vars still need the provider site key.
+- Production was redeployed to `https://empuje.vercel.app` after env configuration. A live `curl` check no longer finds the Supabase missing-key notice on the public page.
+- Temporary key note: Vercel currently uses the legacy Supabase `SUPABASE_SERVICE_ROLE_KEY` fallback because Supabase CLI masks the newer `sb_secret` key after creation. Replace it with a freshly created `SUPABASE_SECRET_KEY` from the Supabase dashboard before final production launch.
 
 Task Group 1 notes:
 
@@ -159,7 +169,7 @@ Task Group 2 notes:
 - Direct DML bypass decision: migrations revoke `insert`, `update`, `delete`, `truncate`, `references`, and `trigger` on `offers`, `needs`, and `evidence_items` from `authenticated` so onboarding writes go through the service-role server action and its quotas.
 - Onboarding idempotency decision: each user has one primary onboarding offer and one primary onboarding need. Re-running onboarding updates those rows instead of appending new rows.
 - Quota decision: 1 offer, 1 need, 8 evidence links, 5 evidence files, 20 MB total uploaded bytes, and 10 MB per file via Storage bucket settings.
-- Runtime proof gap: Supabase Auth dashboard settings, the Auth hook activation, and Auth rate/CAPTCHA enforcement still need dashboard verification in the production project.
+- Runtime proof gap: Supabase Auth dashboard settings, the Auth hook activation, Auth rate/CAPTCHA enforcement after setting the public CAPTCHA site key, and final replacement of the legacy service-role fallback with `SUPABASE_SECRET_KEY` still need dashboard verification in the production project.
 
 Task Group 3 notes:
 
@@ -259,6 +269,30 @@ npx supabase migration list --linked
 npx supabase db advisors --linked --type security --fail-on none
 # PASS: No issues found.
 
+npx vitest run tests/domain/beta-access-migration.test.ts
+# RED before fix: 1 failed because no migration granted app_private schema usage to supabase_auth_admin; GREEN after migration: 1 file, 4 tests.
+
+npx supabase db push --linked
+# PASS: applied 20260601134935_grant_auth_admin_usage_on_app_private.sql.
+
+npx supabase db query --linked "select n.nspname as schema, has_schema_privilege('supabase_auth_admin', n.oid, 'USAGE') as auth_admin_has_usage from pg_namespace n where n.nspname = 'app_private';"
+# PASS: app_private auth_admin_has_usage=true.
+
+npx supabase db advisors --linked --type security --fail-on none
+# PASS: No issues found.
+
+npx vitest run tests/domain/beta-access-migration.test.ts
+# RED before fix: 1 failed because no public dashboard-selectable wrapper existed; GREEN after migration: 1 file, 5 tests.
+
+npx supabase db push --linked
+# PASS: applied 20260601140636_public_invite_hook_wrapper.sql.
+
+npx supabase db query --linked "select n.nspname as schema, p.proname as function_name, pg_get_function_arguments(p.oid) as args, pg_get_function_result(p.oid) as result_type, p.prosecdef as security_definer, array_to_string(p.proconfig, ',') as config, has_function_privilege('supabase_auth_admin', p.oid, 'EXECUTE') as auth_admin_can_execute from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname in ('public','app_private') and p.proname = 'require_beta_invite' order by n.nspname;"
+# PASS: app_private and public require_beta_invite functions exist; public wrapper is not security definer and supabase_auth_admin can execute it.
+
+npx supabase db advisors --linked --type security --fail-on none
+# PASS: No issues found.
+
 npm test
 # PASS: 18 files, 56 tests.
 
@@ -273,6 +307,18 @@ npm audit --omit=dev --audit-level=moderate
 
 npm run test:e2e
 # PASS: 4 Playwright tests. Warnings only: Node DEP0205 and NO_COLOR/FORCE_COLOR.
+
+npx vitest run tests/domain/auth-captcha.test.ts
+# RED before fix: 2 failed because auth requests did not include captchaToken and CAPTCHA env was undocumented; GREEN after fix: 1 file, 2 tests.
+
+npm run lint
+# PASS: tsc --noEmit.
+
+npm test
+# PASS: 19 files, 60 tests.
+
+npm run build
+# PASS: Next.js production build compiled, type-checked, and generated static pages.
 ```
 
 ## Context Compaction Guardrail

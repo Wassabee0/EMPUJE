@@ -7,11 +7,12 @@ Use this before any public production launch. The codebase now assumes a closed 
 ## Supabase Auth
 
 - [ ] Apply all migrations, including `20260601075345_beta_access_onboarding_quotas.sql`.
-- [ ] Set Auth Hook `Before User Created` to Postgres function `app_private.require_beta_invite(event jsonb)`.
+- [ ] Set Auth Hook `Before User Created` to Postgres function `public.require_beta_invite(event jsonb)`.
 - [ ] Insert invited beta emails into `app_private.beta_invites` as normalized lowercase addresses with `status = 'pending'`.
 - [ ] Keep email confirmation enabled.
 - [ ] Keep Google OAuth disabled until the invite hook is verified against OAuth-created users.
 - [ ] Enable CAPTCHA in Auth → Bot and Abuse Protection with Cloudflare Turnstile or hCaptcha.
+- [ ] Set matching Vercel public CAPTCHA env vars: `NEXT_PUBLIC_AUTH_CAPTCHA_PROVIDER` and either `NEXT_PUBLIC_TURNSTILE_SITE_KEY` or `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`.
 - [ ] Review Auth → Rate Limits, especially signup confirmation, OTP/magic-link, email-send, token, and verify endpoints.
 - [ ] Enable IP address forwarding for Auth rate limits if production traffic is behind Vercel/proxying.
 - [ ] Confirm redirect URLs include only localhost development URLs and the production `/auth/callback` URL.
@@ -26,12 +27,15 @@ Use this before any public production launch. The codebase now assumes a closed 
 
 ## Vercel
 
-- [ ] Set `NEXT_PUBLIC_SUPABASE_URL`.
-- [ ] Set `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- [x] Set `NEXT_PUBLIC_SUPABASE_URL`.
+- [x] Set `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - [ ] Set `SUPABASE_SECRET_KEY` as a server-only secret. Do not prefix it with `NEXT_PUBLIC_`.
-- [ ] Set `NEXT_PUBLIC_SITE_URL` to the production origin.
-- [ ] Set `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`.
-- [ ] Do not set `DEV_ADMIN_ACCESS_CODE` in production.
+- [x] Temporary fallback set: `SUPABASE_SERVICE_ROLE_KEY` is present as a sensitive production env var. Replace with `SUPABASE_SECRET_KEY` before final launch.
+- [x] Set `NEXT_PUBLIC_SITE_URL` to the production origin.
+- [x] Set `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`.
+- [ ] Set `NEXT_PUBLIC_AUTH_CAPTCHA_PROVIDER`.
+- [ ] Set either `NEXT_PUBLIC_TURNSTILE_SITE_KEY` or `NEXT_PUBLIC_HCAPTCHA_SITE_KEY`.
+- [x] Do not set `DEV_ADMIN_ACCESS_CODE` in production.
 - [ ] Build command is `npm run build`; production start path is Next.js/Vercel, not `server.js`.
 - [ ] Confirm `npm run serve:legacy` is absent and `server.js` cannot start with `NODE_ENV=production`.
 

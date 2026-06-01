@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, Mail, UserPlus } from "lucide-react";
 
+import { CaptchaWidget, getAuthCaptchaConfig } from "@/components/captcha-widget";
 import { createClient } from "@/lib/supabase/client";
 
 type AuthMode = "signin" | "signup" | "magic";
@@ -30,6 +31,10 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaResetSignal, setCaptchaResetSignal] = useState(0);
+  const captchaConfig = useMemo(() => getAuthCaptchaConfig(), []);
+  const captchaRequired = Boolean(captchaConfig);
   const configured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
       (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
@@ -40,6 +45,19 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
     if (effectiveMode === "magic") return "Recibe un enlace mágico";
     return "Entra en Empuje";
   }, [effectiveMode]);
+
+  const resetCaptcha = useCallback(() => {
+    setCaptchaToken("");
+    setCaptchaResetSignal((value) => value + 1);
+  }, []);
+
+  function getCaptchaTokenForRequest() {
+    if (!captchaRequired) return undefined;
+    if (captchaToken) return captchaToken;
+
+    setMessage("Completa la verificación antiabuso antes de continuar.");
+    return null;
+  }
 
   async function handleGoogleSignIn() {
     setMessage("");
@@ -77,12 +95,17 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
     setBusy(true);
     const supabase = createClient();
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+    const verifiedCaptchaToken = getCaptchaTokenForRequest();
+    if (verifiedCaptchaToken === null) {
+      setBusy(false);
+      return;
+    }
 
     try {
       if (effectiveMode === "magic") {
         const { error } = await supabase.auth.signInWithOtp({
           email,
-          options: { emailRedirectTo: redirectTo, shouldCreateUser: signupEnabled },
+          options: { emailRedirectTo: redirectTo, shouldCreateUser: signupEnabled, captchaToken: verifiedCaptchaToken },
         });
         if (error) throw error;
         setMessage("Revisa tu email. El enlace te traerá de vuelta a Empuje.");
@@ -97,7 +120,7 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: redirectTo },
+          options: { emailRedirectTo: redirectTo, captchaToken: verifiedCaptchaToken },
         });
         if (error) throw error;
         if (data.session) {
@@ -108,13 +131,18 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
         return;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: { captchaToken: verifiedCaptchaToken },
+      });
       if (error) throw error;
       router.push(nextPath);
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se ha podido autenticar la cuenta.");
     } finally {
+      if (captchaRequired) resetCaptcha();
       setBusy(false);
     }
   }
@@ -187,6 +215,12 @@ export function AuthForm({ initialMode, nextPath }: AuthFormProps) {
             />
           </div>
         ) : null}
+        <CaptchaWidget
+          config={captchaConfig}
+          resetSignal={captchaResetSignal}
+          onVerify={setCaptchaToken}
+          onExpire={resetCaptcha}
+        />
         <button className="button full" disabled={busy || !configured} type="submit">
           {effectiveMode === "signup" ? <UserPlus size={17} aria-hidden="true" /> : null}
           {effectiveMode === "magic" ? <Mail size={17} aria-hidden="true" /> : null}
