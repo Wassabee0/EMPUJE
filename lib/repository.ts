@@ -11,7 +11,6 @@ import {
   planOnboardingWrite,
   type ExistingOnboardingUsage,
 } from "@/lib/onboarding-quotas";
-import { buildOpportunityWorkbench, generateOpportunityCandidates } from "@/lib/opportunities";
 import { buildVerificationReviews } from "@/lib/verification";
 import type {
   AdminData,

@@ -13,7 +13,7 @@ This file is the durable checkpoint for agent handoff and context compaction. Up
 
 ## Current Phase
 
-All four task groups complete. Code verification passed; production launch remains blocked on external dashboard/legal readiness steps listed below.
+All four task groups complete. Code verification and staging database verification passed for the linked staging project. Production launch remains blocked on external dashboard/legal readiness steps listed below.
 
 ## Completed
 
@@ -34,7 +34,7 @@ All four task groups complete. Code verification passed; production launch remai
 - Evidence upload quotas: 1 onboarding offer, 1 onboarding need, 8 evidence links, 5 evidence files, 20 MB total uploaded bytes per user, 10 MB per file at the Storage bucket.
 - Disposable email policy: not separately implemented; invite-only email allowlist is the production gate.
 - Production deployment target: Vercel, per README and production checklist.
-- Supabase project/environment names: still needs owner confirmation before dashboard verification.
+- Supabase staging project: owner confirmed project ref `ifphiqzvslsxnqkatton`.
 
 ## Security Findings To Fix
 
@@ -98,6 +98,7 @@ All four task groups complete. Code verification passed; production launch remai
 - `lib/repository.ts`: makes onboarding writes idempotent for the primary offer/need, dedupes evidence links and files, hashes files, stores evidence byte metadata, and enforces quotas before service-role writes.
 - `lib/types.ts`: adds evidence metadata fields.
 - `supabase/migrations/20260601075345_beta_access_onboarding_quotas.sql`: adds private beta invites, invite-only Auth hook function, onboarding idempotency keys, evidence metadata columns, uniqueness indexes, and revokes direct member mutations for offer/need/evidence tables.
+- `supabase/migrations/20260601124314_revoke_authenticated_onboarding_table_ddl_privileges.sql`: revokes remaining `truncate`, `references`, and `trigger` privileges from `authenticated` on offer/need/evidence onboarding tables.
 - `tests/domain/beta-access-migration.test.ts`: verifies invite hook and quota migration controls.
 - `tests/domain/onboarding-quotas.test.ts`: verifies quota planning, dedupe, file count, and byte limits.
 - `tests/domain/onboarding.test.ts`: verifies evidence URL validation and link quota rejection.
@@ -121,21 +122,27 @@ External production blockers remain:
 - Configure Vercel production env vars, log routing, and alerts.
 - Complete legal review and publication of privacy notice, acceptable-use policy, retention policy, and incident process.
 
-External verification attempt, 2026-06-01:
+External verification, 2026-06-01:
 
 - `npm run test:e2e` was rerun after stopping the conflicting local Next dev server. Result: PASS, 12 Playwright tests.
 - Supabase CLI is available through `npx supabase --version` as `2.103.0`.
 - Supabase CLI is now logged in and linked to project ref `ifphiqzvslsxnqkatton` (`eneritzges@gmail.com's Project`, West Europe/London, created 2026-06-01 09:49:28 UTC).
-- `npx supabase migration list --linked` shows all six local migrations have no remote migration entries yet.
-- `npx supabase db push --linked --include-all --dry-run` succeeded and would apply all six local migrations, but no remote schema changes were applied because explicit confirmation is needed before changing the linked database.
 - User confirmed `ifphiqzvslsxnqkatton` is staging and approved migration application.
-- `npx supabase db push --linked --include-all` was attempted, but the Supabase pooler rejected the CLI temporary login role with repeated authentication failures and then `ECIRCUITBREAKER`; the stuck push process was killed to avoid further retries. No migration success output was observed.
-- A read-only storage bucket query returned no `evidence` bucket yet.
-- A read-only schema query confirmed `auth`, `public`, and `storage` schemas exist before migrations; `app_private` was not present before migration application.
-- One parallel read-only table inventory query hit Supabase pooler temporary-role authentication retries and an `ECIRCUITBREAKER` after repeated failed auth; the stuck CLI process was killed. Avoid parallel `db query --linked` calls against this project.
+- User applied the first five migrations externally; a follow-up migration was created and applied from this session.
+- `npx supabase db push --linked` applied `20260601124314_revoke_authenticated_onboarding_table_ddl_privileges.sql`.
+- `npx supabase migration list --linked` now shows remote entries through `20260601124314`.
+- Remote privilege query confirms `authenticated` has `select=true` and `insert/update/delete/truncate/references/trigger=false` on `public.offers`, `public.needs`, and `public.evidence_items`.
+- Remote `app_private.require_beta_invite(event jsonb)` exists, is `SECURITY DEFINER`, returns `jsonb`, and has `search_path=app_private, public`.
+- Remote routine privileges for `app_private.require_beta_invite(jsonb)` are limited to `postgres` and `supabase_auth_admin`.
+- Direct function proof: non-invited email returns `{"error":{"http_code":403,"message":"Empuje beta is invite-only."}}`; an invited email inserted inside a rolled-back transaction returns `{}`; rollback left zero staging verification invites behind.
+- Remote `evidence` Storage bucket exists, is private, has `file_size_limit=10485760`, and allows `image/png`, `image/jpeg`, `image/webp`, `application/pdf`, and `text/plain`.
+- Remote Storage policies `evidence_storage_insert_own_folder` and `evidence_storage_select_own_or_admin` are present and scope object paths to the first folder segment equal to `auth.uid()`, with admin read access.
+- Remote `offers`, `needs`, and `evidence_items` policies are present; `evidence_insert_own_pending` includes owned-offer enforcement.
+- `npx supabase db advisors --linked --type security --fail-on none` returned `No issues found`.
+- Earlier pre-application `db push --include-all` attempts hit a temporary Supabase pooler `ECIRCUITBREAKER`; sequential linked CLI queries and the final follow-up push now work. Avoid parallel `db query --linked` calls against this project.
 - `npx supabase status` remains blocked because Docker is not installed/running in this environment.
-- No Supabase MCP tools were available through tool discovery. Staging/dashboard verification now needs owner confirmation to apply migrations to the linked project, then dashboard actions for Auth hook/CAPTCHA/rate limits.
-- Next required owner action: provide the staging Postgres password locally via `SUPABASE_DB_PASSWORD` or run the push locally with `--password`, or wait for the pooler circuit breaker to clear and retry once.
+- No Supabase MCP tools were available through tool discovery.
+- Remaining staging dashboard checks: confirm the Auth hook is enabled in Dashboard, CAPTCHA/rate limits are configured, redirect URLs are constrained, and Google OAuth remains disabled until invited/non-invited OAuth signup is tested.
 
 Task Group 1 notes:
 
@@ -143,13 +150,13 @@ Task Group 1 notes:
 - Legacy path decision: keep `server.js` for local historical prototype compatibility, but remove npm exposure, require `LEGACY_SERVER_MODE=local`, refuse production and Vercel-like environments, bind only to `127.0.0.1`, and accept admin PINs only through `x-admin-pin`.
 - CSV decision: preserve original text, prefix dangerous cells with an apostrophe, and quote formula-like cells. This covers `=`, `+`, `-`, `@`, leading tab/carriage return, and whitespace before formula triggers.
 - RLS decision: allow nullable `offer_id` evidence rows to preserve the schema contract, but require any referenced offer to belong to the authenticated user.
-- Runtime proof gap: no local Supabase project is available yet, so the RLS fix currently has static SQL coverage only. Run a two-user Supabase RLS test once a local or remote test project is available.
+- Runtime proof: staging policy inspection confirms the owned-offer RLS predicate is deployed. A full two-user Data API smoke test remains useful before production traffic, but direct member DML is currently revoked for the onboarding tables.
 
 Task Group 2 notes:
 
 - Beta access decision: production is invite-only. Signup UI is hidden when `NEXT_PUBLIC_BETA_ACCESS_MODE=invite_only`, and magic links use `shouldCreateUser: false` in that mode.
 - Supabase Auth gate: migration `20260601075345_beta_access_onboarding_quotas.sql` creates `app_private.beta_invites` and `app_private.require_beta_invite(event jsonb)` for the `Before User Created` hook. Dashboard activation is still an external production step.
-- Direct DML bypass decision: the same migration revokes `insert`, `update`, and `delete` on `offers`, `needs`, and `evidence_items` from `authenticated` so onboarding writes go through the service-role server action and its quotas.
+- Direct DML bypass decision: migrations revoke `insert`, `update`, `delete`, `truncate`, `references`, and `trigger` on `offers`, `needs`, and `evidence_items` from `authenticated` so onboarding writes go through the service-role server action and its quotas.
 - Onboarding idempotency decision: each user has one primary onboarding offer and one primary onboarding need. Re-running onboarding updates those rows instead of appending new rows.
 - Quota decision: 1 offer, 1 need, 8 evidence links, 5 evidence files, 20 MB total uploaded bytes, and 10 MB per file via Storage bucket settings.
 - Runtime proof gap: Supabase Auth dashboard settings, the Auth hook activation, and Auth rate/CAPTCHA enforcement still need dashboard verification in the production project.
@@ -240,14 +247,32 @@ npx supabase status
 npx supabase projects list
 # PASS: linked project ref ifphiqzvslsxnqkatton visible.
 
+npx vitest run tests/domain/beta-access-migration.test.ts
+# RED before fix: 1 failed because no migration revoked truncate/references/trigger; GREEN after migration: 1 file, 3 tests.
+
+npx supabase db push --linked
+# PASS: applied 20260601124314_revoke_authenticated_onboarding_table_ddl_privileges.sql.
+
 npx supabase migration list --linked
-# PASS: connected to remote; all six local migrations are not yet applied remotely.
+# PASS: remote migrations present through 20260601124314.
 
-npx supabase db push --linked --include-all --dry-run
-# PASS: dry run only; would apply all six local migrations.
+npx supabase db advisors --linked --type security --fail-on none
+# PASS: No issues found.
 
-npx supabase db push --linked --include-all
-# BLOCKED: Supabase pooler temporary CLI role authentication failed repeatedly and hit ECIRCUITBREAKER. Push process was killed; no migrations were confirmed applied.
+npm test
+# PASS: 18 files, 56 tests.
+
+npm run lint
+# PASS: tsc --noEmit.
+
+npm run build
+# PASS: Next.js production build compiled, type-checked, and generated static pages.
+
+npm audit --omit=dev --audit-level=moderate
+# PASS: found 0 vulnerabilities.
+
+npm run test:e2e
+# PASS: 4 Playwright tests. Warnings only: Node DEP0205 and NO_COLOR/FORCE_COLOR.
 ```
 
 ## Context Compaction Guardrail

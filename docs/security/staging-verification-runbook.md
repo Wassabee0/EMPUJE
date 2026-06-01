@@ -44,6 +44,7 @@ Confirm the staging project has all migrations through:
 
 - `20260601074955_fix_evidence_items_offer_ownership.sql`
 - `20260601075345_beta_access_onboarding_quotas.sql`
+- `20260601124314_revoke_authenticated_onboarding_table_ddl_privileges.sql`
 
 Then verify the policy/function objects exist:
 
@@ -58,12 +59,23 @@ select routine_schema, routine_name, security_type
 from information_schema.routines
 where routine_schema = 'app_private'
   and routine_name = 'require_beta_invite';
+
+select table_name,
+  has_table_privilege('authenticated', format('public.%I', table_name), 'SELECT') as can_select,
+  has_table_privilege('authenticated', format('public.%I', table_name), 'INSERT') as can_insert,
+  has_table_privilege('authenticated', format('public.%I', table_name), 'UPDATE') as can_update,
+  has_table_privilege('authenticated', format('public.%I', table_name), 'DELETE') as can_delete,
+  has_table_privilege('authenticated', format('public.%I', table_name), 'TRUNCATE') as can_truncate,
+  has_table_privilege('authenticated', format('public.%I', table_name), 'REFERENCES') as can_references,
+  has_table_privilege('authenticated', format('public.%I', table_name), 'TRIGGER') as can_trigger
+from (values ('offers'), ('needs'), ('evidence_items')) as t(table_name);
 ```
 
 Expected:
 
 - `evidence_insert_own_pending` includes `profile_id = auth.uid()`, `status = 'pending'`, and an owned-offer `exists` check.
 - `app_private.require_beta_invite` exists as a `SECURITY DEFINER` function.
+- For `offers`, `needs`, and `evidence_items`, `authenticated` has `can_select = true` and `can_insert/can_update/can_delete/can_truncate/can_references/can_trigger = false`.
 
 ## Auth Invite Hook Verification
 
@@ -86,7 +98,7 @@ set status = excluded.status,
 
 ## Evidence RLS / Direct DML Verification
 
-Current production access model revokes direct authenticated `insert`, `update`, and `delete` on `offers`, `needs`, and `evidence_items`. That means the safest expected result is:
+Current production access model revokes direct authenticated `insert`, `update`, `delete`, `truncate`, `references`, and `trigger` on `offers`, `needs`, and `evidence_items`. That means the safest expected result is:
 
 - Direct authenticated insert into `evidence_items` fails.
 - App-owned onboarding writes go through the server action and service-role quota/idempotency checks.
@@ -100,12 +112,25 @@ If a future migration restores direct `authenticated` inserts, run the stricter 
 
 ## Storage Verification
 
-In Supabase Dashboard, confirm:
+In Supabase Dashboard or with SQL, confirm:
 
 - Bucket `evidence` is private.
 - File size limit is `10485760`.
 - Allowed MIME types are `image/png`, `image/jpeg`, `image/webp`, `application/pdf`, `text/plain`.
 - `storage.objects` policies keep user access scoped to the first path segment equal to `auth.uid()`.
+
+```sql
+select id, name, public, file_size_limit, allowed_mime_types
+from storage.buckets
+where id = 'evidence';
+
+select policyname, cmd, roles, qual, with_check
+from pg_policies
+where schemaname = 'storage'
+  and tablename = 'objects'
+  and policyname like 'evidence_storage%'
+order by policyname;
+```
 
 ## Vercel Verification
 
