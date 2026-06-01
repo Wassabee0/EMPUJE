@@ -35,4 +35,18 @@ describe("beta access and onboarding quota migration", () => {
       "revoke insert, update, delete on public.offers, public.needs, public.evidence_items from authenticated",
     );
   });
+
+  test("removes direct member table mutation and DDL-style privileges from onboarding tables", () => {
+    const migrationsDir = path.join(rootDir, "supabase/migrations");
+    const combined = fs
+      .readdirSync(migrationsDir)
+      .filter((name) => name.endsWith(".sql"))
+      .sort()
+      .map((name) => readMigration(name))
+      .join("\n");
+
+    expect(combined).toContain(
+      "revoke insert, update, delete, truncate, references, trigger on public.offers, public.needs, public.evidence_items from authenticated",
+    );
+  });
 });
