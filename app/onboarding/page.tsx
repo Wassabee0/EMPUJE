@@ -17,7 +17,11 @@ function canUseDevOnboardingPreview(params: Record<string, string | string[] | u
   return process.env.NODE_ENV !== "production" && value === "local";
 }
 
-function OnboardingContent() {
+function firstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function OnboardingContent({ onboardingError }: { onboardingError?: string }) {
   return (
     <div className="page-shell">
       <SiteHeader />
@@ -34,6 +38,11 @@ function OnboardingContent() {
         </section>
         <section className="section">
           <div className="container">
+            {onboardingError ? (
+              <div className="danger-note" style={{ marginBottom: 16 }} role="alert">
+                {onboardingError}
+              </div>
+            ) : null}
             <OnboardingForm />
           </div>
         </section>
@@ -44,10 +53,11 @@ function OnboardingContent() {
 
 export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
   const params = (await searchParams) ?? {};
+  const onboardingError = firstParam(params.error);
 
   if (!hasSupabaseServerConfig()) {
     if (canUseDevOnboardingPreview(params)) {
-      return <OnboardingContent />;
+      return <OnboardingContent onboardingError={onboardingError} />;
     }
 
     return (
@@ -65,5 +75,5 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   const user = await getCurrentUser();
   if (!user) redirect("/auth?next=/onboarding");
 
-  return <OnboardingContent />;
+  return <OnboardingContent onboardingError={onboardingError} />;
 }

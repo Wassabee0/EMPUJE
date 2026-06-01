@@ -107,7 +107,9 @@ All four task groups complete. Code verification and staging database verificati
 - `tests/domain/beta-access-migration.test.ts`: verifies invite hook and quota migration controls.
 - `tests/domain/onboarding-quotas.test.ts`: verifies quota planning, dedupe, file count, and byte limits.
 - `tests/domain/onboarding.test.ts`: verifies evidence URL validation and link quota rejection.
-- `app/actions.ts`: emits structured security events for onboarding validation failures, quota/save failures, and successful submissions.
+- `tests/domain/onboarding-action.test.ts`: verifies user-correctable onboarding validation failures do not throw server action errors.
+- `app/actions.ts`: emits structured security events for onboarding validation failures, quota/save failures, and successful submissions; user-correctable onboarding validation/evidence failures redirect back to `/onboarding` with a visible form error instead of throwing a server action error page.
+- `app/onboarding/page.tsx`: displays onboarding error query messages above the form.
 - `app/api/admin/export/route.ts`: emits structured security events for admin exports.
 - `lib/security-events.ts`: centralizes redacted structured security event logging.
 - `tests/domain/security-events.test.ts`: verifies security events omit sensitive metadata such as raw email.
@@ -316,6 +318,18 @@ npm run lint
 
 npm test
 # PASS: 19 files, 60 tests.
+
+npm run build
+# PASS: Next.js production build compiled, type-checked, and generated static pages.
+
+npx vitest run tests/domain/onboarding-action.test.ts
+# RED before fix: 1 failed because validation failures still threw server action errors; GREEN after fix: 1 file, 1 test.
+
+npm run lint
+# PASS: tsc --noEmit.
+
+npm test
+# PASS: 20 files, 61 tests.
 
 npm run build
 # PASS: Next.js production build compiled, type-checked, and generated static pages.

@@ -61,6 +61,10 @@ function nullableString(value: FormDataEntryValue | null) {
   return raw || null;
 }
 
+function onboardingErrorRedirect(message: string): never {
+  redirect(`/onboarding?error=${encodeURIComponent(message)}`);
+}
+
 export async function submitOnboarding(formData: FormData) {
   const user = await requireUser();
   const parsed = parseOnboardingInput(formToRecord(formData));
@@ -73,7 +77,7 @@ export async function submitOnboarding(formData: FormData) {
       action: "validation_failed",
       metadata: { fileCount: files.length, uploadedBytes },
     });
-    throw new Error(`El onboarding está incompleto: ${parsed.error}`);
+    onboardingErrorRedirect(`El onboarding está incompleto. Revisa estos campos: ${parsed.error}.`);
   }
 
   if (!hasEvidenceSubmission(parsed.data.evidenceLinks, files.map((file) => file.size))) {
@@ -82,7 +86,7 @@ export async function submitOnboarding(formData: FormData) {
       action: "missing_evidence",
       metadata: { linkCount: parsed.data.evidenceLinks.length, fileCount: files.length, uploadedBytes },
     });
-    throw new Error("Añade al menos un enlace o archivo de evidencia para que la oferta pueda revisarse.");
+    onboardingErrorRedirect("Añade al menos un enlace o archivo de evidencia para que la oferta pueda revisarse.");
   }
 
   try {
