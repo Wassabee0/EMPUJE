@@ -151,7 +151,7 @@ npm run test:e2e
 
 `npm test` cubre matching determinista, onboarding y export admin. `npm run test:e2e` comprueba la web pública en español y la auth con Google vía Supabase.
 
-El panel fundador incluye un botón “Regenerar candidatos” para materializar la cola en Supabase. La regeneración descarta candidatos obsoletos y no genera matches nuevos para ofertas agotadas, pausadas, reservadas, suspendidas o sin capacidad. En el admin temporal local ese botón aparece desactivado porque los datos son de ejemplo.
+El panel fundador incluye un botón "Regenerar candidatos" para materializar la cola en Supabase. La regeneración descarta candidatos obsoletos y no genera matches nuevos para ofertas agotadas, pausadas, reservadas, suspendidas o sin capacidad. En el admin temporal local ese botón aparece desactivado porque los datos son de ejemplo.
 
 ## Estrategia
 
