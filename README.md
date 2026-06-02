@@ -131,6 +131,25 @@ where email = 'tu@email.com';
 
 Después visita `/admin`.
 
+## Datos ficticios de staging
+
+Para revisar el panel admin antes de invitar usuarios reales, puedes poblar el proyecto staging
+`ifphiqzvslsxnqkatton` con 20 cuentas ficticias, ofertas, necesidades, evidencias, matches e intros.
+
+El script solo corre contra ese project ref salvo que definas `ALLOW_NON_STAGING_SEED=1`.
+Necesita `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SECRET_KEY` o `SUPABASE_SERVICE_ROLE_KEY`
+en `.env.local`.
+
+```bash
+npm run seed:staging:summary
+npm run seed:staging
+npm run seed:staging:clear
+```
+
+Los emails usan el dominio reservado `empuje-staging.test`, no pertenecen a personas reales y
+se limpian por dominio. Si el Auth Hook invite-only bloquea la creacion de usuarios admin, inserta esos emails
+en `app_private.beta_invites` o desactiva el hook solo durante esta carga de staging.
+
 ## Deploy en Vercel
 
 1. Sube el repo a GitHub.

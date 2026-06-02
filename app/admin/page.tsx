@@ -30,12 +30,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     });
 
     if (canUseDevAdmin) {
-      return (
-        <div className="page-shell">
-          <SiteHeader />
-          <AdminView data={getDevAdminData()} mode="dev" />
-        </div>
-      );
+      return <AdminView data={getDevAdminData()} mode="dev" />;
     }
 
     return (
@@ -83,10 +78,5 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const data = await getAdminData();
-  return (
-    <div className="page-shell">
-      <SiteHeader />
-      <AdminView data={data} />
-    </div>
-  );
+  return <AdminView data={data} />;
 }

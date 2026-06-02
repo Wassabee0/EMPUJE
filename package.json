@@ -9,7 +9,10 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "seed:staging": "node scripts/seed-staging-users.mts up",
+    "seed:staging:clear": "node scripts/seed-staging-users.mts down",
+    "seed:staging:summary": "node scripts/seed-staging-users.mts summary"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
